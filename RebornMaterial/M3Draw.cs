@@ -115,23 +115,25 @@ public static class M3Draw
 
 	public static Vector2 MeasureIcon(FontAwesomeIcon icon)
 	{
-		using var font = ImRaii.PushFont(UiBuilder.IconFont);
+		using var font = ImRaii.PushFont(M3Fork.IconFont);
 		return ImGui.CalcTextSize(icon.ToIconString());
 	}
 
+	// Fork: draws in the box MeasureIcon gives at position, with the inked shape centred in it.
 	public static void Icon(ImDrawListPtr drawList, FontAwesomeIcon icon, Vector2 position, Vector4 color)
 	{
-		using var font = ImRaii.PushFont(UiBuilder.IconFont);
-		drawList.AddText(UiBuilder.IconFont, ImGui.GetFontSize(), position, M3.U32(color), icon.ToIconString());
+		IconCentered(drawList, icon, position, position + MeasureIcon(icon), color);
 	}
 
+	// Fork: text-sized icon font, centred on the glyph's inked shape rather than its advance box.
 	public static void IconCentered(ImDrawListPtr drawList, FontAwesomeIcon icon, Vector2 min, Vector2 max, Vector4 color, float scale = 1f)
 	{
-		using var font = ImRaii.PushFont(UiBuilder.IconFont);
+		var iconFont = M3Fork.IconFont;
+		using var font = ImRaii.PushFont(iconFont);
 		var text = icon.ToIconString();
-		var size = ImGui.CalcTextSize(text) * scale;
-		var position = min + (((max - min) - size) * 0.5f);
-		drawList.AddText(UiBuilder.IconFont, ImGui.GetFontSize() * scale, position, M3.U32(color), text);
+		var fontSize = ImGui.GetFontSize() * scale;
+		var position = M3Fork.InkCenteredPosition(iconFont, fontSize, icon, (min + max) * 0.5f, ImGui.CalcTextSize(text) * scale);
+		drawList.AddText(iconFont, fontSize, position, M3.U32(color), text);
 	}
 
 	// Outlines the last item while the keyboard or a gamepad has it focused. Mouse users never see it.

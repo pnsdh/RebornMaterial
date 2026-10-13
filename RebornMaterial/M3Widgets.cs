@@ -482,7 +482,7 @@ public static partial class M3Widgets
 	// Fills while held and returns true once it's full, so a risky action can't fire from a stray click.
 	public static bool HoldButton(string id, string label, float seconds = 1f, M3ButtonStyle style = M3ButtonStyle.Danger, FontAwesomeIcon icon = FontAwesomeIcon.None, float? width = null, bool enabled = true, string? tooltip = null)
 	{
-		_ = Button(id, label, style, icon, width, enabled, tooltip ?? "Hold to confirm");
+		_ = Button(id, label, style, icon, width, enabled, tooltip ?? M3Fork.T("Hold to confirm"));
 		var key = ImGui.GetID(id);
 		var held = enabled && ImGui.IsItemActive();
 		var min = ImGui.GetItemRectMin();
@@ -732,7 +732,7 @@ public static partial class M3Widgets
 		if (brand is not null)
 		{
 			ImGui.SetCursorScreenPos(new Vector2(x, y));
-			toggled = CaretButton("##minimize", -MathF.PI * 0.5f * minimized, minimized < 0.5f ? "Minimize" : "Restore");
+			toggled = CaretButton("##minimize", -MathF.PI * 0.5f * minimized, minimized < 0.5f ? M3Fork.T("Minimize") : M3Fork.T("Restore"));
 			x += buttonSize + gap;
 		}
 
@@ -1095,14 +1095,9 @@ public static partial class M3Widgets
 		}
 		else
 		{
-			using (ImRaii.PushFont(UiBuilder.IconFont))
-			{
-				var glyph = icon.ToIconString();
-				var glyphSize = ImGui.CalcTextSize(glyph);
-				drawList.AddText(UiBuilder.IconFont, ImGui.GetFontSize(),
-					new Vector2(cursorX, min.Y + ((size.Y - glyphSize.Y) * 0.5f)), M3.U32(accent), glyph);
-				cursorX += glyphSize.X + (6f * scale);
-			}
+			var glyphSize = M3Draw.MeasureIcon(icon);
+			M3Draw.Icon(drawList, icon, new Vector2(cursorX, min.Y + ((size.Y - glyphSize.Y) * 0.5f)), accent);
+			cursorX += glyphSize.X + (6f * scale);
 		}
 
 		var textSize = ImGui.CalcTextSize(label);
@@ -1820,7 +1815,7 @@ public static partial class M3Widgets
 		if (canReset)
 		{
 			ImGui.SetCursorScreenPos(origin + new Vector2(swatch + M3.Space1, (controlSize.Y - resetSize) * 0.5f));
-			if (IconButton($"##{id}_reset", FontAwesomeIcon.Undo, "Reset to default", diameter: resetSize, enabled: enabled))
+			if (IconButton($"##{id}_reset", FontAwesomeIcon.Undo, M3Fork.T("Reset to default"), diameter: resetSize, enabled: enabled))
 			{
 				color = defaultColor!.Value;
 				changed = true;
@@ -1899,7 +1894,7 @@ public static partial class M3Widgets
 		if (hasText)
 		{
 			ImGui.SetCursorScreenPos(new Vector2(max.X - clearWidth - (6f * scale), min.Y + ((height - (26f * scale)) * 0.5f)));
-			if (IconButton($"{id}_clear", FontAwesomeIcon.Times, "Clear search", diameter: 26f * scale, enabled: enabled))
+			if (IconButton($"{id}_clear", FontAwesomeIcon.Times, M3Fork.T("Clear search"), diameter: 26f * scale, enabled: enabled))
 			{
 				text = string.Empty;
 				changed = true;
@@ -2261,7 +2256,7 @@ public static partial class M3Widgets
 
 			// Enter ends typing within the field's own call, so check whether it's being typed in before drawing it.
 			var typing = ImGuiP.GetActiveID() == ImGui.GetID("##search");
-			_ = SearchField("##search", "Search", ref query, ImGui.GetContentRegionAvail().X);
+			_ = SearchField("##search", M3Fork.T("Search"), ref query, ImGui.GetContentRegionAvail().X);
 			pickFirst = typing && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter));
 			_comboQueries[key] = query;
 			ImGui.Dummy(new Vector2(0f, M3.Space1));
@@ -2285,7 +2280,7 @@ public static partial class M3Widgets
 
 		if (_comboMatches.Count == 0)
 		{
-			M3Text.Draw(query.Length > 0 ? "No matches" : "Nothing to pick", M3TextStyle.Muted);
+			M3Text.Draw(query.Length > 0 ? M3Fork.T("No matches") : M3Fork.T("Nothing to pick"), M3TextStyle.Muted);
 			return false;
 		}
 
@@ -2648,7 +2643,7 @@ public static partial class M3Widgets
 		if (defaultColor is { } fallback)
 		{
 			ImGui.SameLine(0f, M3.Space2);
-			if (Button($"##{popupId}_reset", "Reset", M3ButtonStyle.Text, FontAwesomeIcon.Undo, enabled: fallback != color))
+			if (Button($"##{popupId}_reset", M3Fork.T("Reset"), M3ButtonStyle.Text, FontAwesomeIcon.Undo, enabled: fallback != color))
 			{
 				color = fallback;
 				changed = true;

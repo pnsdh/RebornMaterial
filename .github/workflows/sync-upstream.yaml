@@ -1,0 +1,102 @@
+name: Sync upstream
+
+# Keeps this fork on top of LTS-FFXIV/RebornMaterial. The fork's own changes are small and mostly live in
+# M3Fork.cs, so upstream usually merges cleanly:
+#   - clean merge that builds  -> pushed to main automatically
+#   - merge conflict           -> nothing pushed, an issue is opened to resolve it by hand
+#   - merge that doesn't build -> nothing pushed, an issue is opened
+#   - merge that can't be pushed (upstream touched a workflow file) -> an issue is opened
+# Runs daily and can be started by hand from the Actions tab.
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      UPSTREAM: https://github.com/LTS-FFXIV/RebornMaterial.git
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream
+        id: merge
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "$UPSTREAM"
+          git fetch upstream main --no-tags
+
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "Already up to date with upstream."
+            echo "state=uptodate" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "upstream=$(git rev-parse --short upstream/main)" >> "$GITHUB_OUTPUT"
+          if git merge --no-edit -m "Merge upstream $(git rev-parse --short upstream/main)" upstream/main; then
+            echo "state=merged" >> "$GITHUB_OUTPUT"
+          else
+            git diff --name-only --diff-filter=U > conflicts.txt
+            git merge --abort
+            echo "state=conflict" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up .NET
+        if: steps.merge.outputs.state == 'merged'
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Download Dalamud
+        if: steps.merge.outputs.state == 'merged'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip -DestinationPath "$env:AppData\XIVLauncher\addon\Hooks\dev"
+
+      - name: Build merged library
+        id: build
+        if: steps.merge.outputs.state == 'merged'
+        continue-on-error: true
+        run: dotnet build -c Release RebornMaterial/RebornMaterial.csproj
+
+      - name: Push merge
+        id: push
+        if: steps.merge.outputs.state == 'merged' && steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: git push origin HEAD:main
+
+      - name: Open an issue when the merge needs a hand
+        if: steps.merge.outputs.state == 'conflict' || (steps.merge.outputs.state == 'merged' && (steps.build.outcome != 'success' || steps.push.outcome != 'success'))
+        shell: bash
+        run: |
+          gh label create upstream-sync --color FBCA04 --description "Upstream merge needs attention" 2>/dev/null || true
+          if [ -n "$(gh issue list --label upstream-sync --state open --json number -q '.[].number')" ]; then
+            echo "An upstream-sync issue is already open."
+            exit 0
+          fi
+
+          if [ "${{ steps.merge.outputs.state }}" = "conflict" ]; then
+            title="Upstream ${{ steps.merge.outputs.upstream }} conflicts with the fork"
+            body="Merging upstream main (${{ steps.merge.outputs.upstream }}) into main conflicts in:"$'\n\n'"$(sed 's/^/- /' conflicts.txt)"$'\n\n'"Resolve locally: \`git fetch upstream && git merge upstream/main\`, keep the fork's changes (mostly in M3Fork.cs and the lines marked 'Fork:'), build, and push. Close this issue afterwards."
+          elif [ "${{ steps.build.outcome }}" = "success" ]; then
+            title="Upstream ${{ steps.merge.outputs.upstream }} merges and builds but could not be pushed"
+            body="The merge is clean and builds, but the push was refused. This usually means upstream changed a workflow file, which the automatic token may not push. Merge and push by hand: \`git fetch upstream && git merge upstream/main && git push\`. Close this issue afterwards."
+          else
+            title="Upstream ${{ steps.merge.outputs.upstream }} merges but does not build"
+            body="Merging upstream main (${{ steps.merge.outputs.upstream }}) is clean but the library no longer builds. See the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"$'\n\n'"Close this issue once main is updated."
+          fi
+
+          gh issue create --label upstream-sync --title "$title" --body "$body"

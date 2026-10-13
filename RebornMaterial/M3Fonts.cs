@@ -6,7 +6,7 @@ namespace RebornMaterial;
 public static class M3Fonts
 {
 	private const int GameFontCapacity = 12;
-	private const int DefaultFontCapacity = 4;
+	private const int DefaultFontCapacity = 16;
 
 	private readonly record struct CachedFont(IFontHandle Handle, int LastUsedFrame);
 

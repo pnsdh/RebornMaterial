@@ -13,7 +13,7 @@ public readonly record struct M3Hotkey(VirtualKey Key, bool Ctrl = false, bool S
 	{
 		if (IsEmpty)
 		{
-			return "None";
+			return M3Fork.T("None");
 		}
 
 		var prefix = (Ctrl ? "Ctrl+" : string.Empty) + (Shift ? "Shift+" : string.Empty) + (Alt ? "Alt+" : string.Empty);
@@ -87,7 +87,7 @@ public static partial class M3Widgets
 			M3.Alpha(listening ? s.Primary : s.OnSurfaceVariant, dim));
 		textX += iconSize.X + (10f * scale);
 
-		var text = listening ? "Press a key" : hotkey.ToString();
+		var text = listening ? M3Fork.T("Press a key") : hotkey.ToString();
 		var color = listening ? M3.Alpha(s.Primary, 0.65f + (0.35f * MathF.Sin((float)ImGui.GetTime() * 5f)))
 			: hotkey.IsEmpty ? M3.Alpha(s.OnSurfaceVariant, 0.8f * dim)
 			: M3.Alpha(s.OnSurface, 0.95f * dim);
@@ -99,7 +99,7 @@ public static partial class M3Widgets
 		{
 			var diameter = height - (12f * scale);
 			ImGui.SetCursorScreenPos(new Vector2(max.X - clearWidth + ((clearWidth - diameter) * 0.5f), min.Y + ((height - diameter) * 0.5f)));
-			if (IconButton($"{id}_clear", FontAwesomeIcon.Times, "Clear", diameter: diameter, enabled: enabled))
+			if (IconButton($"{id}_clear", FontAwesomeIcon.Times, M3Fork.T("Clear"), diameter: diameter, enabled: enabled))
 			{
 				hotkey = M3Hotkey.None;
 				changed = true;
