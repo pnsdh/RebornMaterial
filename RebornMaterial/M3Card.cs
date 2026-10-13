@@ -73,7 +73,7 @@ public static class M3Card
 
 			if (icon != FontAwesomeIcon.None)
 			{
-				M3Draw.Icon(drawList, icon, new Vector2(textX, cursorY + (1f * scale)), tone);
+				M3Draw.Icon(drawList, icon, new Vector2(textX, M3Fork.TitleIconTop(icon, cursorY)), tone); // Fork: centred on the title line
 				textX += M3Draw.MeasureIcon(icon).X + (10f * scale);
 			}
 

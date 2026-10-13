@@ -81,6 +81,21 @@ public static class M3Fork
 		_ = IconFont;
 	}
 
+	/// <summary>
+	/// Top of an icon beside a card title starting at <paramref name="titleTop"/>, centred on the title's line. The
+	/// title font is larger than the icon line once the type scale grows, so a fixed offset leaves the icon high.
+	/// </summary>
+	internal static float TitleIconTop(FontAwesomeIcon icon, float titleTop)
+	{
+		float lineHeight;
+		using (Dalamud.Interface.Utility.Raii.ImRaii.PushFont(M3.TitleMedium))
+		{
+			lineHeight = ImGui.GetTextLineHeight();
+		}
+
+		return titleTop + ((lineHeight - M3Draw.MeasureIcon(icon).Y) * 0.5f);
+	}
+
 	/// <summary><paramref name="english"/> through <see cref="Localize"/>, or unchanged when none is set.</summary>
 	internal static string T(string english)
 	{
