@@ -16,26 +16,27 @@ The whole colour scheme is generated from one accent colour, and every metric fo
 
 | Type | What it draws |
 | --- | --- |
-| `M3` | Scheme, shapes, spacing, fonts, scale, and the colour helpers (`Alpha`, `StateLayer`, `ContentOn`, `Severity`, `Harmonize`, `CustomColor`) |
+| `M3` | Scheme, shapes, spacing, fonts, scale, and the colour helpers (`Alpha`, `StateLayer`, `ContentOn`, `Severity`, `Harmonize`, `CustomColor`, `AccentFor`) |
 | `M3Style` | Pushes the scheme onto ImGui's own style for a whole window, at a Comfortable, Compact or Tight density |
 | `M3Widgets` | Buttons (with accent colours, game icons, and hold to confirm), icon buttons and toggles, switches, checkboxes (bare, labelled, or mixed), radios, segmented buttons, chips, pills, badges, sliders (including logarithmic), progress bars and spinners, text, search and number fields, hotkey fields, combos (with search and enums), menu items, help markers, reorder lists, banners, empty states, colour swatches, dividers, and the window title-bar actions |
-| `M3Widgets.Row*` | A label and description with one control: switch, slider, number, combo, colour, text or hotkey |
+| `M3Widgets.Row*` | A label and description with one control: switch, slider, number, combo, segmented buttons, colour, text or hotkey |
 | `M3Card`, `M3ExpandableCard` | Filled, outlined and elevated cards, which can also collapse |
 | `M3SettingRow`, `M3SubGroup` | Label and description on the left, control on the right. Wraps to two lines when narrow |
 | `M3Navigation` | Navigation drawer and rail with section headings, and primary and secondary tabs that scroll when they don't fit |
 | `M3Menu` | Popup and right-click menus, with submenus |
 | `M3Tree` | Rows that open and close, for folders, groups and nested settings |
 | `M3Flow` | Lays items out in a row that wraps onto new lines |
-| `M3Text` | Text in the scheme's roles: muted, accent, headings, labels and severities |
+| `M3Text` | Text in the scheme's roles: muted, accent, headings, labels and severities, and bullets |
 | `M3Chart` | Bar and line charts with a legend and hover readout, and the same data as a table |
 | `M3Dialog` | Modal dialogs with actions |
 | `M3Snackbar` | Queued toast messages with an optional action |
-| `M3Badge` | A small tag on a line of text |
+| `M3Badge` | A small tag on a line of text, or painted beside text you drew yourself |
 | `M3TextField` | Filled single-line text field |
 | `M3ActionIcon` | Action and game icons with a cooldown sweep and charge pips |
 | `M3HeroHeader` | Window header with an image, or a gradient with animated stars |
-| `M3WindowFold` | Minimises a window down to its title-bar actions, with animation, from a button or from code |
-| `M3Draw`, `M3Motion` | Drawing primitives (arcs, shadows, gradients, icons, focus rings) and per-widget easing |
+| `M3TopAppBar` | A page title and subtitle for a window without a title bar, with room for its action pill |
+| `M3WindowFold` | Minimises a window down to its title-bar actions, with animation, from a button or from code. Its contents fade and keep their layout while it folds |
+| `M3Draw`, `M3Motion` | Drawing primitives (arcs, shadows, gradients, window backdrops, icons, focus rings) and per-widget easing |
 | `M3Gallery` | A showcase of everything above, for a debug tab |
 
 ## Setup
@@ -144,6 +145,72 @@ public override void Draw()
 
 To scale everything in one window, push `M3.PushWindowScale(scale)` before `M3Style.Push` and dispose it after.
 
+### Windows without a title bar
+
+`M3WindowFold` draws the title-bar actions as a pill in the top-right corner, and folds the window down into it. `M3TopAppBar` gives the page a title that leaves room for the pill, and says how many actions fit:
+
+```csharp
+private readonly M3WindowFold _fold = new();
+private int _shownActions = Actions.Length;
+
+public override void PreDraw()
+{
+    _theme = M3Style.Push();
+
+    // The fold adds flags while it runs, so start from the window's own each frame.
+    Flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
+    if (_fold.Prepare(this, _shownActions, Brand))
+    {
+        // Fully restored: give back the position and size the fold took over.
+        Position = null;
+        Size = DefaultSize;
+        SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = DefaultSizeConstraints;
+    }
+}
+
+public override void PostDraw()
+{
+    _fold.PopStyle();
+    _theme.Dispose();
+    _theme = default;
+}
+
+public override void Draw()
+{
+    _fold.BeginDraw();
+    if (_fold.Amount < 1f)
+    {
+        using var alpha = ImRaii.PushStyle(ImGuiStyleVar.Alpha, _fold.ContentAlpha);
+        M3Draw.WindowBackdrop(_fold.Rounding);
+
+        using var content = _fold.BeginContent("##content");
+        if (content)
+        {
+            using (var bar = M3TopAppBar.Begin("Settings", "What this page is for", Actions.Length, Brand))
+            {
+                _shownActions = bar.ShownActions;
+                _fold.BarTop = bar.BarTop;
+            }
+
+            // The page.
+        }
+    }
+
+    // Last, so the pill stays on top while the window folds. Actions drop from the left when they don't fit.
+    var first = Actions.Length - _shownActions;
+    var pressed = _fold.DrawBar("##actions", Actions.AsSpan(first), Brand, out var closed, M3.Scheme.SurfaceContainerHigh);
+    if (pressed >= 0)
+    {
+        OnAction(first + pressed); // An index into Actions.
+    }
+
+    IsOpen &= !closed;
+}
+```
+
+For a header of your own, `M3Widgets.WindowActionsThatFit` says how many actions fit in a width.
+
 ### Density
 
 `M3Style.Push` takes an `M3Density`:
@@ -178,7 +245,8 @@ Each `Row*` helper draws a label, an optional description, and one control. Toge
 | `float`, `int` in a range | `RowDragFloat`, `RowDragInt` (pass `logarithmic: true` for wide ranges) |
 | `float`, `int` typed in | `RowNumber`, with an optional step and unit |
 | An enum | `RowCombo<T>`, or `RowCombo(label, type, ref value)` when the type is only known at run time |
-| A list of names | `RowCombo(label, ref index, items)` |
+| A list of names | `RowCombo(label, ref index, items)`, or `RowCombo(label, ref index, count, itemLabel)` to label them on demand |
+| A few choices that should all stay visible | `RowSegmented` |
 | A colour | `RowColor`, with an optional default to reset to |
 | Text | `RowText` |
 | A hotkey | `RowHotkey`, which stores an `M3Hotkey` of a `VirtualKey` and modifiers |

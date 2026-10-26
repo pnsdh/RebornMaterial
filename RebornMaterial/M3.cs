@@ -204,6 +204,18 @@ public static class M3
 		return new M3ColorRoles(palette[80], palette[20], palette[30], palette[90]);
 	}
 
+	// Cycles primary, tertiary and secondary by index, so neighbouring cards and sections can be told apart.
+	public static Vector4 AccentFor(int index)
+	{
+		var scheme = Scheme;
+		return (index % 3) switch
+		{
+			0 => scheme.Primary,
+			1 => scheme.Tertiary,
+			_ => scheme.Secondary,
+		};
+	}
+
 	public static Vector4 Severity(M3Severity severity)
 	{
 		var scheme = Scheme;

@@ -44,6 +44,9 @@ public sealed class M3WindowFold
 
 	public float Rounding => _rounding;
 
+	// Style alpha for the open window's contents. They fade out faster than the window folds, so they're gone before the pill closes over them.
+	public float ContentAlpha => ImGui.GetStyle().Alpha * (1f - MathF.Min(1f, Amount * 1.4f));
+
 	// ImGui truncates window positions and sizes, so anchors stay on whole pixels or each fold drifts the window.
 	private Vector2 AnchorInset => Vector2.Round(new Vector2(_openPadding.X, _openPadding.Y + BarTop));
 
@@ -179,6 +182,16 @@ public sealed class M3WindowFold
 
 		var inset = AnchorInset;
 		return (new Vector2(_anchorOpen.X + inset.X - _restoreSize.X, _anchorOpen.Y - inset.Y), _restoreSize);
+	}
+
+	// A child over the open window's contents, inside its padding, so they keep their layout while the window folds.
+	// Call it while Amount is below 1, inside a push of ContentAlpha. Draw anything window-wide, like a backdrop, before it.
+	public ImRaii.ChildDisposable BeginContent(string id)
+	{
+		var (pos, size) = OpenRect();
+		ImGui.SetCursorScreenPos(pos + _openPadding);
+		return ImRaii.Child(id, Vector2.Max(Vector2.One, size - (_openPadding * 2f)), false,
+			ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoBackground);
 	}
 
 	public int DrawBar(string id, ReadOnlySpan<M3WindowAction> actions, in M3WindowBrand brand, out bool closed, Vector4? fill = null, string closeTooltip = "Close")

@@ -118,10 +118,16 @@ public static partial class M3Widgets
 		return new Vector2(20f, 20f) * M3.Scale;
 	}
 
+	// The size Checkbox takes up, which is larger than the box so it's easier to hit. Line other controls up with this.
+	public static Vector2 CheckboxHitSize()
+	{
+		return CheckboxSize() + (new Vector2(8f, 8f) * M3.Scale);
+	}
+
 	// Mixed draws a dash, for a box that stands for several values that don't agree. A click still flips value.
 	public static bool Checkbox(string id, ref bool value, bool enabled = true, bool mixed = false)
 	{
-		var hit = CheckboxSize() + (new Vector2(8f, 8f) * M3.Scale);
+		var hit = CheckboxHitSize();
 
 		var changed = false;
 		if (ImGui.InvisibleButton(id, hit) && enabled)
@@ -156,7 +162,7 @@ public static partial class M3Widgets
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 		var (display, id) = SplitLabel(label);
-		var hit = CheckboxSize() + (new Vector2(8f, 8f) * scale);
+		var hit = CheckboxHitSize();
 		var size = new Vector2(LabeledCheckboxWidth(label), MathF.Max(hit.Y, ImGui.GetFrameHeight()));
 
 		var changed = false;
@@ -658,6 +664,29 @@ public static partial class M3Widgets
 	public static Vector2 WindowActionsSize(int actionCount, in M3WindowBrand brand, float minimized)
 	{
 		return WindowActionsSize(LeadingWidth(actionCount, brand, minimized), 2);
+	}
+
+	// How many actions fit in a pill no wider than available, dropping one at a time but never below minimum.
+	public static int WindowActionsThatFit(int actionCount, float available, int minimum = 0)
+	{
+		var shown = actionCount;
+		while (shown > minimum && WindowActionsSize(shown).X > available)
+		{
+			shown--;
+		}
+
+		return shown;
+	}
+
+	public static int WindowActionsThatFit(int actionCount, in M3WindowBrand brand, float available, int minimum = 0)
+	{
+		var shown = actionCount;
+		while (shown > minimum && WindowActionsSize(shown, brand, 0f).X > available)
+		{
+			shown--;
+		}
+
+		return shown;
 	}
 
 	public static int WindowActions(string id, Vector2 topRight, ReadOnlySpan<M3WindowAction> actions, out bool closed, Vector4? fill = null, string closeTooltip = "Close")
@@ -1760,6 +1789,24 @@ public static partial class M3Widgets
 		return changed;
 	}
 
+	// For items that are cheaper to label on demand than to collect into a list.
+	public static bool RowCombo(string label, ref int index, int count, Func<int, string> itemLabel, string? supporting = null, bool search = false, bool enabled = true)
+	{
+		var widest = 0f;
+		for (var i = 0; i < count; i++)
+		{
+			widest = MathF.Max(widest, ImGui.CalcTextSize(itemLabel(i)).X);
+		}
+
+		var (display, id) = SplitLabel(label);
+		var width = RowComboWidth(widest);
+		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, ComboHeight), disabled: !enabled);
+		ImGui.SetCursorScreenPos(row.ControlPosition);
+		var changed = Combo($"##{id}_combo", ref index, count, itemLabel, width, search: search, enabled: enabled);
+		M3SettingRow.End(row);
+		return changed;
+	}
+
 	public static bool RowCombo<T>(string label, ref T value, string? supporting = null, Func<T, string>? itemLabel = null, bool search = false, bool enabled = true)
 		where T : struct, Enum
 	{
@@ -1796,6 +1843,26 @@ public static partial class M3Widgets
 		var changed = Combo($"##{id}_combo", enumType, ref value, width, itemLabel, search, enabled);
 		M3SettingRow.End(row);
 		return changed;
+	}
+
+	// Segmented buttons for a few choices that should all stay visible. They shrink to fit a narrow row.
+	public static bool RowSegmented(string label, ref int index, ReadOnlySpan<M3Segment> segments, string? supporting = null, bool enabled = true)
+	{
+		var (display, id) = SplitLabel(label);
+		var width = MathF.Min(SegmentedWidth(segments), M3SettingRow.MaxControlWidth());
+
+		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, SegmentedHeight), disabled: !enabled);
+		ImGui.SetCursorScreenPos(row.ControlPosition);
+		var clicked = SegmentedButtons($"##{id}_segments", segments, index, width, enabled: enabled);
+		M3SettingRow.End(row);
+
+		if (clicked < 0)
+		{
+			return false;
+		}
+
+		index = clicked;
+		return true;
 	}
 
 	public static bool RowColor(string label, ref Vector4 color, Vector4? defaultColor = null, string? supporting = null, bool alpha = true, bool enabled = true)

@@ -42,6 +42,31 @@ public static class M3Text
 		}
 	}
 
+	// A line of text after a dot. Wrapped lines hang under the text, not the dot.
+	public static void Bullet(string text, M3TextStyle style = M3TextStyle.Body, bool wrap = true, Vector4? dot = null)
+	{
+		var scale = M3.Scale;
+		var indent = 22f * scale;
+
+		using var scope = Push(style);
+		var origin = ImGui.GetCursorScreenPos();
+		ImGui.GetWindowDrawList().AddCircleFilled(
+			new Vector2(origin.X + (9f * scale), origin.Y + (ImGui.GetTextLineHeight() * 0.5f)),
+			2.5f * scale, M3.U32(dot ?? M3.Scheme.Primary, 0.9f), 12);
+
+		ImGui.Indent(indent);
+		if (wrap)
+		{
+			ImGui.TextWrapped(text);
+		}
+		else
+		{
+			ImGui.TextUnformatted(text);
+		}
+
+		ImGui.Unindent(indent);
+	}
+
 	public static Vector2 Measure(string text, M3TextStyle style = M3TextStyle.Body)
 	{
 		var font = FontOf(style);

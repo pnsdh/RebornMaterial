@@ -187,6 +187,9 @@ public static class M3Gallery
 	private static M3Density _rowEnum = M3Density.Compact;
 	private static int _ruleIndex;
 	private static int _rowComboIndex = 1;
+	private static int _rowCountIndex = 3;
+	private static int _rowSegment;
+	private static int _rowSegmentIcons = 1;
 	private static M3Hotkey _hotkey = new(Dalamud.Game.ClientState.Keys.VirtualKey.G, Ctrl: true);
 	private static M3Hotkey _holdKey = M3Hotkey.None;
 	private static string _rowText = "auto";
@@ -348,6 +351,11 @@ public static class M3Gallery
 		{
 			M3Text.Draw($"{style} - Next window in 12:40", style);
 		}
+
+		Heading("Bullets", isNew: true);
+		M3Text.Bullet("A bullet in body text.");
+		M3Text.Bullet("A muted bullet that is long enough to wrap in most windows. The wrapped lines hang under the text, not the dot.", M3TextStyle.Muted);
+		M3Text.Bullet("The dot takes any colour.", dot: M3.Scheme.Tertiary);
 
 		Heading("Shape");
 		DrawShapes();
@@ -657,6 +665,21 @@ public static class M3Gallery
 			M3Draw.IconCentered(ImGui.GetWindowDrawList(), FontAwesomeIcon.Magic, ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), s.Primary);
 			Caption("Icon centred");
 		}
+
+		flow.Next(box.X);
+		using (ImRaii.Group())
+		{
+			// A child stands in for a window, since the backdrop covers the whole of the current one.
+			using (var child = ImRaii.Child("##gallery_backdrop", box, false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+			{
+				if (child)
+				{
+					M3Draw.WindowBackdrop(M3.ShapeMedium, box.Y / scale);
+				}
+			}
+
+			Caption("Window backdrop");
+		}
 	}
 
 	#endregion
@@ -809,6 +832,27 @@ public static class M3Gallery
 
 		ImGui.SetCursorScreenPos(barOrigin);
 		ImGui.Dummy(openBarSize);
+
+		Heading("Top app bar", isNew: true);
+		Caption("A page title for a window without a title bar. Narrow the window and the pill drops actions to keep the title readable.");
+		var trailing = M3Widgets.IconButtonSize + (4f * M3.Scale);
+		using (var bar = M3TopAppBar.Begin("Rotation settings", "A subtitle sits under the title", _windowActions.Length, brand, trailing))
+		{
+			// A real window's fold draws this pill from ShownActions and BarTop.
+			var shown = _windowActions.AsSpan(_windowActions.Length - bar.ShownActions);
+			var pressed = M3Widgets.WindowActions("##gallery_appbar_actions", new Vector2(bar.Max.X, bar.Min.Y + bar.BarTop), shown, brand, 0f,
+				out _, out _, M3.Scheme.SurfaceContainerHigh);
+			if (pressed >= 0)
+			{
+				Pressed(shown[pressed].Tooltip);
+			}
+
+			ImGui.SetCursorScreenPos(bar.TrailingPosition(M3Widgets.IconButtonSize));
+			if (M3Widgets.IconButton("##gallery_appbar_clear", FontAwesomeIcon.Times, "The trailing slot, such as a clear search button"))
+			{
+				Pressed("Trailing button");
+			}
+		}
 
 		Heading("Segmented buttons");
 		var picked = M3Widgets.SegmentedButtons("##segmented_text", _textSegments, _segmentText);
@@ -1067,6 +1111,12 @@ public static class M3Gallery
 		_ = M3Widgets.Combo("##gallery_combo_off", ref _comboIndex, _comboItems, width, enabled: false, tooltip: "A disabled combo");
 		_ = M3Widgets.RowCombo("Row combo###gallery_row_combo", ref _rowComboIndex, _sizeOptions, "A combo in a setting row.");
 		_ = M3Widgets.RowCombo("Row enum combo###gallery_row_enum", ref _rowEnum, "Sized to its longest label.");
+		_ = M3Widgets.RowCombo("Row combo from a count###gallery_row_count", ref _rowCountIndex, _comboItems.Length, i => _comboItems[i],
+			"Labels each item on demand instead of taking a list.");
+
+		Heading("Segmented rows", isNew: true);
+		_ = M3Widgets.RowSegmented("Report window###gallery_row_segmented", ref _rowSegment, _textSegments, "A few choices that should all stay in view.");
+		_ = M3Widgets.RowSegmented("Aspect###gallery_row_segmented_icons", ref _rowSegmentIcons, _iconSegments, "Icons work too, and the buttons shrink in a narrow row.");
 
 		Heading("Number fields", isNew: true);
 		_ = M3Widgets.RowNumber("Max distance###gallery_distance", ref _distance, 0.1f, 0f, 30f, "%.1f", "y",
@@ -1163,6 +1213,24 @@ public static class M3Gallery
 		flow.Next(M3Widgets.ButtonWidth(FontAwesomeIcon.None, "Updates"));
 		_ = M3Widgets.Button("##badge_button", "Updates", M3ButtonStyle.Outlined);
 		M3Widgets.Badge("New", M3.Scheme.Tertiary);
+
+		Heading("Tags", isNew: true);
+		ImGui.AlignTextToFramePadding();
+		ImGui.TextUnformatted("Savage module");
+		ImGui.SameLine(0f, M3.Space2);
+		M3Badge.Draw("Beta", M3.Scheme.Tertiary, "Tags take a tooltip");
+
+		// Text that was drawn rather than submitted, as in a custom row, with a tag painted after it.
+		var rowHeight = 32f * scale;
+		ImGui.Dummy(new Vector2(width, rowHeight));
+		var rowMin = ImGui.GetItemRectMin();
+		var drawList = ImGui.GetWindowDrawList();
+		const string drawn = "A custom-drawn row";
+		var textSize = ImGui.CalcTextSize(drawn);
+		drawList.AddText(new Vector2(rowMin.X, rowMin.Y + ((rowHeight - textSize.Y) * 0.5f)), M3.U32(M3.Scheme.OnSurface), drawn);
+		var tagSize = M3Badge.Size("Untested");
+		_ = M3Badge.Paint(drawList, new Vector2(rowMin.X + textSize.X + M3.Space2, rowMin.Y + ((rowHeight - tagSize.Y) * 0.5f)), "Untested", M3.Scheme.Warning);
+		Caption("M3Badge.Paint draws a tag anywhere, without taking up layout space.");
 
 		Heading("Snackbars", isNew: true);
 		Caption("Shown along the bottom of this window, one at a time. Hovering one holds it on screen.");
@@ -1270,6 +1338,13 @@ public static class M3Gallery
 		using (var card = M3Card.Begin("gallery_card_accent", "Accented card", FontAwesomeIcon.Leaf, s.Tertiary))
 		{
 			_ = M3Widgets.RowSwitch("A setting inside a card###gallery_card_switch", ref _rowSwitch);
+		}
+
+		Heading("Accent cycle", isNew: true);
+		Caption("M3.AccentFor cycles primary, tertiary and secondary by index, so neighbouring cards can be told apart.");
+		for (var i = 0; i < 3; i++)
+		{
+			using var card = M3Card.Begin($"gallery_accent_cycle_{i}", $"AccentFor({i})", FontAwesomeIcon.Square, M3.AccentFor(i));
 		}
 
 		Heading("Expandable card");

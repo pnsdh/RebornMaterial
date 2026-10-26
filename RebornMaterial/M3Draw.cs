@@ -113,6 +113,28 @@ public static class M3Draw
 		drawList.AddRectFilledMultiColor(min, max, topColor, topColor, bottomColor, bottomColor);
 	}
 
+	// A tint across the top of the current window that fades into its surface, for a window that draws its own header.
+	public static void WindowBackdrop(float rounding, float height = 200f)
+	{
+		var s = M3.Scheme;
+		var drawList = ImGui.GetWindowDrawList();
+		var windowPos = ImGui.GetWindowPos();
+		var windowSize = ImGui.GetWindowSize();
+		var top = M3.Alpha(s.SurfaceContainer, 0.65f);
+		var max = new Vector2(windowPos.X + windowSize.X, windowPos.Y + MathF.Min(height * M3.Scale, windowSize.Y));
+		rounding = MathF.Min(rounding, (max.Y - windowPos.Y) * 0.5f);
+
+		// Multi-color rects can't be rounded, so a solid strip draws the rounded top corners.
+		drawList.PushClipRect(windowPos, windowPos + windowSize, false);
+		if (rounding > 0f)
+		{
+			drawList.AddRectFilled(windowPos, new Vector2(max.X, windowPos.Y + rounding), M3.U32(top), rounding, ImDrawFlags.RoundCornersTop);
+		}
+
+		VerticalGradient(drawList, new Vector2(windowPos.X, windowPos.Y + rounding), max, top, M3.Alpha(s.Surface, 0f));
+		drawList.PopClipRect();
+	}
+
 	public static Vector2 MeasureIcon(FontAwesomeIcon icon)
 	{
 		using var font = ImRaii.PushFont(M3Fork.IconFont);
