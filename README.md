@@ -209,7 +209,9 @@ public override void Draw()
 }
 ```
 
-For a header of your own, `M3Widgets.WindowActionsThatFit` says how many actions fit in a width.
+Pass `minimumActions` to `M3TopAppBar.Begin` to keep the last few actions however narrow the window gets, such as an unlock button on a window that can't be resized while it's locked. For a header of your own, `M3Widgets.WindowActionsThatFit` says how many actions fit in a width.
+
+ImGui keeps a window's size when its plugin reloads. If the window was folded at the time, the fold reopens it at its last saved size the first time it draws.
 
 ### Density
 

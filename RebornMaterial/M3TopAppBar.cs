@@ -5,16 +5,17 @@ namespace RebornMaterial;
 // A page's title and subtitle at the top of a window drawn without a title bar. It leaves room on the right for the
 // window's action pill, and a trailing slot left of the pill for a control such as a clear search button.
 // Pass ShownActions and BarTop on to the window's M3WindowFold, so the pill lines up with the bar on the next frame.
+// minimumActions stay in the pill however narrow the bar gets, for an action the window can't lose, like an unlock button.
 public static class M3TopAppBar
 {
-	public static Scope Begin(string title, string? subtitle, int actionCount, in M3WindowBrand brand, float trailingWidth = 0f, float? gap = null)
+	public static Scope Begin(string title, string? subtitle, int actionCount, in M3WindowBrand brand, float trailingWidth = 0f, float? gap = null, int minimumActions = 0)
 	{
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 		var width = MathF.Max(64f * scale, ImGui.GetContentRegionAvail().X);
 
 		// Actions drop from the pill until the title has room.
-		var shown = M3Widgets.WindowActionsThatFit(actionCount, brand, width - trailingWidth - (96f * scale));
+		var shown = M3Widgets.WindowActionsThatFit(actionCount, brand, width - trailingWidth - (96f * scale), minimumActions);
 		var barSize = M3Widgets.WindowActionsSize(shown, brand, 0f);
 		var textWidth = MathF.Max(32f * scale, width - barSize.X - trailingWidth - (12f * scale));
 		var padding = 4f * M3.PaddingScale;

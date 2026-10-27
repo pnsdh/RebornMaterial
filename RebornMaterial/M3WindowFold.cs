@@ -13,6 +13,7 @@ public sealed class M3WindowFold
 
 	private bool _layout;
 	private bool _settled;
+	private bool _checkedLeftover;
 
 	private Vector2 _restoreSize;
 	private Vector2 _anchorOpen;
@@ -100,6 +101,12 @@ public sealed class M3WindowFold
 		var style = ImGui.GetStyle();
 		_openPadding = style.WindowPadding;
 		_rounding = style.WindowRounding;
+
+		if (!_checkedLeftover)
+		{
+			_checkedLeftover = true;
+			ReopenLeftover(window);
+		}
 
 		var resting = _minimized && _time >= 1f;
 
@@ -252,20 +259,57 @@ public sealed class M3WindowFold
 		_minimized = true;
 	}
 
+	// ImGui keeps a window's size across a plugin reload, so one left folded by the last instance would come back pill-sized.
+	// Folding stops ImGui saving the window, so its saved size is still the open one.
+	private void ReopenLeftover(Window window)
+	{
+		var existing = ImGuiP.FindWindowByName(window.WindowName);
+		if (existing.IsNull
+			|| !existing.Flags.HasFlag(ImGuiWindowFlags.NoSavedSettings)
+			|| window.Flags.HasFlag(ImGuiWindowFlags.NoSavedSettings))
+		{
+			return;
+		}
+
+		var saved = ImGuiP.FindWindowSettings(existing.ID);
+		var size = saved.IsNull ? Vector2.Zero : new Vector2(saved.Size.X, saved.Size.Y);
+		if (size.X <= 0f || size.Y <= 0f)
+		{
+			if (window.Size is not { } fallback)
+			{
+				return;
+			}
+
+			size = Vector2.Round(fallback * ImGuiHelpers.GlobalScale);
+		}
+
+		var corner = new Vector2(existing.Pos.X + existing.SizeFull.X, existing.Pos.Y);
+		ImGuiP.SetWindowPos(existing, OpenPositionNear(corner, size), ImGuiCond.Always);
+		ImGuiP.SetWindowSize(existing, size, ImGuiCond.Always);
+	}
+
 	private Vector2 OpenAnchorNear(Vector2 folded)
 	{
+		var pos = OpenPositionNear(folded, _restoreSize);
 		var inset = AnchorInset;
-		var pos = new Vector2(folded.X + inset.X - _restoreSize.X, folded.Y - inset.Y);
+		return new Vector2(pos.X + _restoreSize.X - inset.X, pos.Y + inset.Y);
+	}
+
+	// Where a window of this size opens out of a pill whose top-right corner is at folded. It stays on screen if the pill is.
+	private Vector2 OpenPositionNear(Vector2 folded, Vector2 size)
+	{
+		var inset = AnchorInset;
+		var pos = new Vector2(folded.X + inset.X - size.X, folded.Y - inset.Y);
 
 		var viewport = ImGui.GetMainViewport();
 		var min = viewport.WorkPos;
 		var max = viewport.WorkPos + viewport.WorkSize;
 		if (folded.X >= min.X && folded.X <= max.X && folded.Y >= min.Y && folded.Y <= max.Y)
 		{
-			pos.X = Math.Clamp(pos.X, min.X, MathF.Max(min.X, max.X - _restoreSize.X));
-			pos.Y = Math.Clamp(pos.Y, min.Y, MathF.Max(min.Y, max.Y - _restoreSize.Y));
+			pos.X = Math.Clamp(pos.X, min.X, MathF.Max(min.X, max.X - size.X));
+			pos.Y = Math.Clamp(pos.Y, min.Y, MathF.Max(min.Y, max.Y - size.Y));
 		}
 
-		return new Vector2(pos.X + _restoreSize.X - inset.X, pos.Y + inset.Y);
+		return pos;
 	}
 }
