@@ -480,21 +480,34 @@ public static class M3Navigation
 
 	public static string Truncate(string text, float maxWidth)
 	{
+		const string Ellipsis = "…";
 		if (string.IsNullOrEmpty(text) || ImGui.CalcTextSize(text).X <= maxWidth)
 		{
 			return text;
 		}
 
-		var ellipsisWidth = ImGui.CalcTextSize("…").X;
-		for (var length = text.Length - 1; length > 0; length--)
+		var room = maxWidth - ImGui.CalcTextSize(Ellipsis).X;
+		var low = 0;
+		var high = text.Length - 1;
+		while (low < high)
 		{
-			var candidate = text[..length];
-			if (ImGui.CalcTextSize(candidate).X + ellipsisWidth <= maxWidth)
+			var mid = (low + high + 1) / 2;
+			if (ImGui.CalcTextSize(text.AsSpan(0, mid)).X <= room)
 			{
-				return candidate + "…";
+				low = mid;
+			}
+			else
+			{
+				high = mid - 1;
 			}
 		}
 
-		return "…";
+		if (low > 0 && char.IsHighSurrogate(text[low - 1]))
+		{
+			low--;
+		}
+
+		var kept = text.AsSpan(0, low).TrimEnd();
+		return kept.IsEmpty ? Ellipsis : string.Concat(kept, Ellipsis);
 	}
 }

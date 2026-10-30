@@ -50,6 +50,7 @@ public static class M3Chart
 		var layout = BeginChart(id, categories, series, size, 0f, top, format, yTitle, xTitle, false);
 		if (layout.Plot.Width <= 0f || categories.Count == 0)
 		{
+			EndChart(layout);
 			return;
 		}
 
@@ -151,6 +152,7 @@ public static class M3Chart
 		var count = xLabels.Count;
 		if (layout.Plot.Width <= 0f || count == 0)
 		{
+			EndChart(layout);
 			return;
 		}
 
@@ -172,20 +174,22 @@ public static class M3Chart
 		{
 			var color = M3.U32(Palette[i]);
 			var drawing = 0;
+			var last = Vector2.Zero;
 			for (var p = 0; p < count; p++)
 			{
 				var value = p < series[i].Values.Count ? series[i].Values[p] : float.NaN;
 				if (float.IsNaN(value))
 				{
-					drawing = StrokePath(drawList, drawing, color, scale);
+					drawing = StrokePath(drawList, drawing, last, color, scale);
 					continue;
 				}
 
-				drawList.PathLineTo(new Vector2(X(p), Y(value)));
+				last = new Vector2(X(p), Y(value));
+				drawList.PathLineTo(last);
 				drawing++;
 			}
 
-			StrokePath(drawList, drawing, color, scale);
+			StrokePath(drawList, drawing, last, color, scale);
 		}
 
 		if (!layout.Hovered)
@@ -458,7 +462,7 @@ public static class M3Chart
 		}
 	}
 
-	private static int StrokePath(ImDrawListPtr drawList, int points, uint color, float scale)
+	private static int StrokePath(ImDrawListPtr drawList, int points, Vector2 last, uint color, float scale)
 	{
 		if (points >= 2)
 		{
@@ -467,6 +471,10 @@ public static class M3Chart
 		else
 		{
 			drawList.PathClear();
+			if (points == 1)
+			{
+				drawList.AddCircleFilled(last, 2.5f * scale, color, 12);
+			}
 		}
 
 		return 0;

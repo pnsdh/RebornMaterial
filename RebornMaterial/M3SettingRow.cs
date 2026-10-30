@@ -94,7 +94,7 @@ public static class M3SettingRow
 		var min = ImGui.GetCursorScreenPos();
 		var width = RowWidth;
 
-		var texture = leadingTexture?.Handle == null ? null : leadingTexture;
+		var texture = M3Draw.Usable(leadingTexture) ? leadingTexture : null;
 		var textureExtent = texture == null ? 0f : leadingTextureSize * scale;
 		var iconWidth = texture != null
 			? textureExtent + (10f * scale)

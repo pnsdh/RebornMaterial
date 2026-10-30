@@ -7,21 +7,26 @@ public static class M3CardHost
 {
 	private const int MaxTrackedCards = 512;
 
-	private static readonly Dictionary<string, float> _measuredHeights = [];
+	private static readonly M3FrameCache<float> _measuredHeights = new(MaxTrackedCards);
 
 	public static float PreviousHeight(string id)
 	{
-		return _measuredHeights.TryGetValue(id, out var height) ? height : 0f;
+		return PreviousHeight(ImGui.GetID(id));
+	}
+
+	public static float PreviousHeight(uint id)
+	{
+		return _measuredHeights.TryGet(id, out var height) ? height : 0f;
 	}
 
 	public static void RecordHeight(string id, float height)
 	{
-		if (_measuredHeights.Count > MaxTrackedCards)
-		{
-			_measuredHeights.Clear();
-		}
+		RecordHeight(ImGui.GetID(id), height);
+	}
 
-		_measuredHeights[id] = height;
+	public static void RecordHeight(uint id, float height)
+	{
+		_measuredHeights.Set(id, height);
 	}
 
 	public static void Reset()
@@ -55,15 +60,16 @@ public static class M3Card
 		var scale = M3.Scale;
 		var tone = accent ?? M3.Scheme.Primary;
 
+		var key = ImGui.GetID(id);
 		var min = ImGui.GetCursorScreenPos();
 		var width = MathF.Max(64f * scale, ImGui.GetContentRegionAvail().X);
 		var cursorY = min.Y + TopPadding;
 
-		var previous = M3CardHost.PreviousHeight(id);
+		var previous = M3CardHost.PreviousHeight(key);
 		if (previous > 0f)
 		{
 			var max = new Vector2(min.X + width, min.Y + previous);
-			Paint(ImGui.GetWindowDrawList(), min, max, tone, style, ImGui.IsMouseHoveringRect(min, max, false));
+			Paint(ImGui.GetWindowDrawList(), min, max, tone, style, M3Draw.MouseOver(min, max, true));
 		}
 
 		if (!string.IsNullOrEmpty(title))
@@ -102,7 +108,7 @@ public static class M3Card
 		ImGui.Indent(ContentInset);
 		PushContentWrap(min.X + width);
 		ImGui.SetCursorScreenPos(new Vector2(min.X + ContentInset, cursorY));
-		return new Scope(id, min, width, ContentInset);
+		return new Scope(key, min, width, ContentInset);
 	}
 
 	public static void PushContentWrap(float cardRightScreenX)
@@ -144,7 +150,7 @@ public static class M3Card
 			M3Draw.ResolveFade(80f, 0.35f, railBottom - railTop));
 	}
 
-	public readonly struct Scope(string id, Vector2 min, float width, float indent) : IDisposable
+	public readonly struct Scope(uint id, Vector2 min, float width, float indent) : IDisposable
 	{
 		public void Dispose()
 		{
@@ -171,11 +177,12 @@ public static class M3ExpandableCard
 		var scale = M3.Scale;
 		var tone = accent ?? s.Primary;
 
+		var key = ImGui.GetID(id);
 		var min = ImGui.GetCursorScreenPos();
 		var width = MathF.Max(64f * scale, ImGui.GetContentRegionAvail().X);
 		var headerHeight = M3Style.Density == M3Density.Tight ? M3.FitText(36f, 8f) : M3.FitText(48f, 12f);
 
-		var previousHeight = MathF.Max(M3CardHost.PreviousHeight(id), headerHeight);
+		var previousHeight = MathF.Max(M3CardHost.PreviousHeight(key), headerHeight);
 		Paint(ImGui.GetWindowDrawList(), min, new Vector2(min.X + width, min.Y + previousHeight), tone, expanded);
 
 		if (ImGui.InvisibleButton($"{id}_header", new Vector2(width, headerHeight)))
@@ -276,7 +283,7 @@ public static class M3ExpandableCard
 			ImGui.SetCursorScreenPos(new Vector2(min.X, min.Y + headerHeight - M3Card.BottomPadding));
 		}
 
-		return new Scope(id, min, width, indent, expanded);
+		return new Scope(key, min, width, indent, expanded);
 	}
 
 	private static void DrawChevron(ImDrawListPtr drawList, Vector2 center, float progress, Vector4 color)
@@ -305,7 +312,7 @@ public static class M3ExpandableCard
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 		var rounding = M3.ShapeMedium;
-		var hovered = ImGui.IsMouseHoveringRect(min, max, false);
+		var hovered = M3Draw.MouseOver(min, max, true);
 		var fill = expanded
 			? M3.Alpha(s.SurfaceContainerLow, 0.95f)
 			: M3.Alpha(s.SurfaceContainerLowest, hovered ? 0.85f : 0.65f);
@@ -322,7 +329,7 @@ public static class M3ExpandableCard
 		}
 	}
 
-	public readonly struct Scope(string id, Vector2 min, float width, float indent, bool expanded) : IDisposable
+	public readonly struct Scope(uint id, Vector2 min, float width, float indent, bool expanded) : IDisposable
 	{
 		public bool Expanded => expanded;
 

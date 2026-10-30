@@ -268,7 +268,16 @@ public static class M3ColorMath
 
 	public static Vector4 Mix(Vector4 from, Vector4 to, float amount)
 	{
-		amount = Math.Clamp(amount, 0f, 1f);
+		if (amount <= 0f)
+		{
+			return from;
+		}
+
+		if (amount >= 1f)
+		{
+			return to;
+		}
+
 		return new Vector4(
 			Delinearize(float.Lerp(Linearize(from.X), Linearize(to.X), amount)),
 			Delinearize(float.Lerp(Linearize(from.Y), Linearize(to.Y), amount)),

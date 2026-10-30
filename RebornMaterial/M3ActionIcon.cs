@@ -76,26 +76,13 @@ public static class M3ActionIcon
 
 	public static bool Image(ImDrawListPtr drawList, IDalamudTextureWrap? texture, Vector2 min, Vector2 max, float rounding, float alpha = 1f)
 	{
-		if (texture == null)
+		if (!M3Draw.Usable(texture))
 		{
 			return false;
 		}
 
-		try
-		{
-			var handle = texture.Handle;
-			if (handle.IsNull)
-			{
-				return false;
-			}
-
-			drawList.AddImageRounded(handle, min, max, Vector2.Zero, Vector2.One, M3.U32(Vector4.One, alpha), rounding);
-			return true;
-		}
-		catch (ObjectDisposedException)
-		{
-			return false;
-		}
+		drawList.AddImageRounded(texture.Handle, min, max, Vector2.Zero, Vector2.One, M3.U32(Vector4.One, alpha), rounding);
+		return true;
 	}
 
 	public static void EmptySlot(ImDrawListPtr drawList, Vector2 min, Vector2 max, float rounding)
@@ -128,7 +115,7 @@ public static class M3ActionIcon
 				M3Draw.Arc(drawList, center, radius, 0f, elapsed / recast, s.Primary, thickness);
 			}
 
-			var text = recast <= 0f ? "0" : ((int)(recast - elapsed) + 1).ToString();
+			var text = recast <= 0f ? "0" : Math.Max(1, (int)MathF.Ceiling(recast - elapsed)).ToString();
 			var textSize = ImGui.CalcTextSize(text);
 			var textPosition = center - (textSize * 0.5f);
 			drawList.AddText(textPosition + (new Vector2(1f, 1f) * scale), M3.U32(s.Scrim, 0.8f), text);

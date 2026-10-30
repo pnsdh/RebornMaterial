@@ -25,7 +25,6 @@ public static partial class M3Widgets
 		return width;
 	}
 
-	// The value is clamped to min and max. A step above zero adds minus and plus buttons, which repeat while held.
 	public static bool NumberField(string id, ref float value, float width, float step = 0f, float min = float.MinValue, float max = float.MaxValue, string format = "%.2f", string? unit = null, bool enabled = true)
 	{
 		using var idScope = ImRaii.PushId(id);
@@ -104,13 +103,6 @@ public static partial class M3Widgets
 
 	private readonly record struct NumberLayout(Vector2 Min, Vector2 Max, float UnitX);
 
-	private static ImRaii.ColorDisposable PushClearFrame()
-	{
-		return ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0f, 0f, 0f, 0f))
-			.Push(ImGuiCol.FrameBgHovered, new Vector4(0f, 0f, 0f, 0f))
-			.Push(ImGuiCol.FrameBgActive, new Vector4(0f, 0f, 0f, 0f));
-	}
-
 	private static NumberLayout BeginNumberField(float width, bool steppers, string? unit)
 	{
 		var scale = M3.Scale;
@@ -136,7 +128,7 @@ public static partial class M3Widgets
 		var (min, max, unitX) = layout;
 		var height = max.Y - min.Y;
 		var focused = ImGui.IsItemActive();
-		var hovered = enabled && ImGui.IsMouseHoveringRect(min, max) && ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows);
+		var hovered = enabled && M3Draw.MouseOver(min, max);
 		var drawList = ImGui.GetWindowDrawList();
 		var dim = enabled ? 1f : M3.DisabledContent;
 

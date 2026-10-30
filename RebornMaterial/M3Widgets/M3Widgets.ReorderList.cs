@@ -9,7 +9,6 @@ public static partial class M3Widgets
 
 	public static float ReorderRowHeight => M3.FitText(36f, 8f);
 
-	// Drag a row to move it, or hold Ctrl and press up or down while a row has keyboard focus.
 	public static bool ReorderList<T>(string id, IList<T> items, Func<T, string> label, ref int selected, Func<T, string?>? tooltip = null, bool enabled = true)
 	{
 		var s = M3.Scheme;
@@ -46,7 +45,7 @@ public static partial class M3Widgets
 				_reorderIndex = i;
 			}
 
-			if (enabled && focused && ImGui.GetIO().KeyCtrl)
+			if (enabled && focused && !moved && ImGui.GetIO().KeyCtrl)
 			{
 				var target = ImGui.IsKeyPressed(ImGuiKey.UpArrow) ? i - 1 : ImGui.IsKeyPressed(ImGuiKey.DownArrow) ? i + 1 : i;
 				if (target != i && target >= 0 && target < items.Count)

@@ -24,18 +24,29 @@ public readonly record struct M3Hotkey(VirtualKey Key, bool Ctrl = false, bool S
 public static partial class M3Widgets
 {
 	private static uint _listeningHotkey;
+	private static int _listeningFrame;
 	private static ImGuiKey[]? _hotkeyCandidates;
 
 	public static float HotkeyFieldHeight => ComboHeight;
 
-	// Click it, then press the key. Escape or a click elsewhere cancels, and the cross clears it.
 	public static bool HotkeyField(string id, ref M3Hotkey hotkey, float width, bool modifiers = true, bool enabled = true, string? tooltip = null)
 	{
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 		var height = HotkeyFieldHeight;
 		var key = ImGui.GetID(id);
-		var listening = _listeningHotkey == key;
+		var frame = ImGui.GetFrameCount();
+		var listening = _listeningHotkey == key && _listeningFrame >= frame - 1;
+		if (_listeningHotkey == key && !listening)
+		{
+			_listeningHotkey = 0;
+		}
+
+		if (listening)
+		{
+			_listeningFrame = frame;
+		}
+
 		var clearWidth = hotkey.IsEmpty || listening ? 0f : height;
 
 		var clicked = ImGui.InvisibleButton(id, new Vector2(width - clearWidth, height)) && enabled;
@@ -50,6 +61,7 @@ public static partial class M3Widgets
 		{
 			listening = !listening;
 			_listeningHotkey = listening ? key : 0;
+			_listeningFrame = frame;
 		}
 
 		var changed = false;

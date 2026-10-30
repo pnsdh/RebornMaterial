@@ -177,6 +177,8 @@ public static class M3Gallery
 	private static readonly bool[] _mixedChildren = [true, false, true];
 	private static readonly string[] _mixedNames = ["Miner", "Botanist", "Fisher"];
 	private static float _logSlider = 2f;
+	private static float _steppedSlider = 0.75f;
+	private static int _snackSeverity;
 	private static readonly Vector4 _rowColorDefault = new(0.85f, 0.45f, 0.2f, 1f);
 	private static Vector4 _rowColor = new(0.85f, 0.45f, 0.2f, 1f);
 	private static float _distance = 2.6f;
@@ -1055,6 +1057,8 @@ public static class M3Gallery
 		_ = M3Widgets.SliderInt("##slider_int", ref _sliderInt, 0, 10, _sliderInt.ToString(), track);
 		_ = M3Widgets.RowDragFloat("Row slider (float)###gallery_row_float", ref _rowFloat, 0f, 5f, "%.1f s");
 		_ = M3Widgets.RowDragInt("Row slider (int)###gallery_row_int", ref _rowInt, 0, 30);
+		_ = M3Widgets.RowDragFloat("Stepped slider###gallery_row_step", ref _steppedSlider, 0f, 2f, "%.2f",
+			"A step snaps the value, here to quarters.", step: 0.25f);
 		_ = M3Widgets.RowDragFloat("Logarithmic slider###gallery_row_log", ref _logSlider, 0.1f, 100f, "%.2f",
 			"Logarithmic sliders give the low end of a wide range more of the track.", logarithmic: true);
 		var disabledSlider = 0.6f;
@@ -1252,6 +1256,14 @@ public static class M3Gallery
 		{
 			M3Snackbar.Show("A longer snackbar wraps onto a second line when it will not fit on one, and stays up for the long duration.",
 				"Got it", duration: M3Snackbar.LongDuration);
+		}
+
+		flow.Next(M3Widgets.ButtonWidth(FontAwesomeIcon.None, "With severity"));
+		if (M3Widgets.Button("##snack_severity", "With severity", M3ButtonStyle.Tonal))
+		{
+			M3Severity[] severities = [M3Severity.Success, M3Severity.Info, M3Severity.Warning, M3Severity.Error];
+			var severity = severities[_snackSeverity++ % severities.Length];
+			M3Snackbar.Show($"A {severity.ToString().ToLowerInvariant()} message carries its icon", severity: severity);
 		}
 
 		flow.Next(M3Widgets.ButtonWidth(FontAwesomeIcon.None, "Queue three"));

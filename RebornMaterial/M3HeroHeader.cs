@@ -78,7 +78,11 @@ public sealed class M3HeroHeader
 		var windowPos = ImGui.GetWindowPos();
 		var windowSize = ImGui.GetWindowSize();
 
-		if (image is { Width: > 0, Height: > 0 })
+		if (!M3Draw.Usable(image))
+		{
+			image = null;
+		}
+		else if (image is { Width: > 0, Height: > 0 })
 		{
 			_imageAspect = image.Width / (float)image.Height;
 		}
