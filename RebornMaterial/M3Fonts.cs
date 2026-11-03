@@ -24,7 +24,7 @@ public static class M3Fonts
 	{
 		var key = Math.Max(1, (int)MathF.Round(size));
 
-		return Resolve(_handles, GameFontCapacity, key, M3Fork.NewAxisFontHandle); // Fork: Axis with Hangul from Dalamud's Noto
+		return Resolve(_handles, GameFontCapacity, key, M3Fork.NewAxisFontHandle); // Fork: Axis, with Noto for Hangul it lacks
 	}
 
 	public static ImFontPtr GetDefaultFont(float scale)

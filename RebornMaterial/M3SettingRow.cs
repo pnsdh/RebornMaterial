@@ -118,7 +118,7 @@ public static class M3SettingRow
 		var supportingHeight = 0f;
 		if (!string.IsNullOrEmpty(supporting))
 		{
-			using var font = ImRaii.PushFont(M3Fork.BodySmall);
+			using var font = ImRaii.PushFont(M3.LabelSmall);
 			supportingHeight = ImGui.CalcTextSize(supporting, false, innerWidth).Y + (4f * scale);
 		}
 
@@ -170,7 +170,7 @@ public static class M3SettingRow
 
 		if (!string.IsNullOrEmpty(supporting))
 		{
-			using var font = ImRaii.PushFont(M3Fork.BodySmall);
+			using var font = ImRaii.PushFont(M3.LabelSmall);
 			_ = M3Draw.WrappedText(supporting,
 				new Vector2(textLeft, min.Y + PaddingY + headlineHeight + (4f * scale)),
 				innerWidth,
@@ -251,7 +251,7 @@ public static class M3SettingRow
 		var supportingHeight = 0f;
 		if (!string.IsNullOrEmpty(supporting))
 		{
-			using var font = ImRaii.PushFont(M3Fork.BodySmall);
+			using var font = ImRaii.PushFont(M3.LabelSmall);
 			supportingHeight = ImGui.CalcTextSize(supporting, false, textWidth).Y + (4f * scale);
 		}
 
@@ -281,7 +281,7 @@ public static class M3SettingRow
 
 		if (!string.IsNullOrEmpty(supporting))
 		{
-			using var font = ImRaii.PushFont(M3Fork.BodySmall);
+			using var font = ImRaii.PushFont(M3.LabelSmall);
 			_ = M3Draw.WrappedText(supporting, new Vector2(textLeft, min.Y + PaddingY + labelSize.Y + (4f * scale)), textWidth,
 				M3.Alpha(s.OnSurfaceVariant, 0.85f));
 		}
