@@ -133,11 +133,11 @@ public static class M3
 	public const float DisabledContainer = 0.12f;
 
 	public static ImFontPtr Body => M3Fonts.GetDefaultFont(TextScale);
-	// Fork: the default font at ratios of its size, not Axis at fixed pixels (see M3Fork).
-	public static ImFontPtr HeadlineSmall => M3Fonts.GetDefaultFont(M3Fork.HeadlineSmallRatio * TextScale);
-	public static ImFontPtr TitleLarge => M3Fonts.GetDefaultFont(M3Fork.TitleLargeRatio * TextScale);
-	public static ImFontPtr TitleMedium => M3Fonts.GetDefaultFont(M3Fork.TitleMediumRatio * TextScale);
-	public static ImFontPtr LabelSmall => M3Fonts.GetDefaultFont(M3Fork.LabelSmallRatio * TextScale);
+	// Fork: sized as ratios of the default font, not fixed pixels (see M3Fork).
+	public static ImFontPtr HeadlineSmall => M3Fonts.GetFont(M3Fork.Px(M3Fork.HeadlineSmallRatio) * TextScale);
+	public static ImFontPtr TitleLarge => M3Fonts.GetFont(M3Fork.Px(M3Fork.TitleLargeRatio) * TextScale);
+	public static ImFontPtr TitleMedium => M3Fonts.GetFont(M3Fork.Px(M3Fork.TitleMediumRatio) * TextScale);
+	public static ImFontPtr LabelSmall => M3Fonts.GetFont(M3Fork.Px(M3Fork.LabelSmallRatio) * TextScale);
 
 	public static FontScope PushBody()
 	{

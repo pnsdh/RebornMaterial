@@ -6,8 +6,8 @@ The whole colour scheme is generated from one accent colour, and every metric fo
 
 > **This is the pnsdh fork** of [LTS-FFXIV/RebornMaterial](https://github.com/LTS-FFXIV/RebornMaterial), for plugins used with Korean (and other CJK) text. It merges upstream automatically every day (`.github/workflows/sync-upstream.yaml`); a conflict or a broken build opens an issue instead. Its changes are kept small, mostly in `M3Fork.cs` plus a few lines marked `Fork:`:
 >
-> - Titles, headlines and labels use the Dalamud default font instead of the Axis game font, which has no Hangul.
-> - The type scale is a set of ratios of the default font size (headline 1.4, title large 1.2, title medium 1.1, body 1.0, body small 0.95, label small 0.85), so headings never end up smaller than body text when the default font is large. Setting-row supporting text uses the new `M3Fork.BodySmall`.
+> - Titles, headlines and labels keep the Axis game font, with Hangul filled in from Dalamud's Noto (the game font has none, or only at a few sizes).
+> - The type scale is a set of ratios of the default font size (upstream's pixel sizes over the 16px default, with label small raised to 0.85 and a new body small at 0.95), so headings never end up smaller than body text when the default font is large. Setting-row supporting text uses the new `M3Fork.BodySmall`.
 > - Icons use a Font Awesome font that follows the text size (`M3Fork.IconFont`) and are centred on the glyph's inked shape, not its advance box.
 > - The library's own strings ("Clear search", "Minimize", …) go through `M3Fork.Localize`, so a plugin can translate them.
 > - `M3Fork.PreloadFonts()` starts building the whole type scale early, so windows don't open in a stand-in font.

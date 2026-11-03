@@ -1,3 +1,4 @@
+using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 
 namespace RebornMaterial;
@@ -6,8 +7,9 @@ namespace RebornMaterial;
 /// Additions carried by the pnsdh fork of RebornMaterial (Korean / CJK use), kept in this one file so merges from
 /// upstream rarely touch them. Upstream files only call into here at a few points:
 /// <list type="bullet">
-/// <item>the type scale in <see cref="M3"/> uses the Dalamud default font at ratios of its size (the Axis game
-/// font has no Hangul, and fixed pixel sizes end up smaller than body text when the default font is large);</item>
+/// <item>the type scale in <see cref="M3"/> keeps upstream's Axis game font but fills in Hangul from Dalamud's Noto
+/// (<see cref="NewAxisFontHandle"/>), and is sized at ratios of the default font (fixed pixel sizes end up smaller
+/// than body text when the default font is large);</item>
 /// <item><see cref="M3Draw"/> draws icons with <see cref="IconFont"/>, which follows the text size, and centres
 /// them on the glyph's inked shape;</item>
 /// <item>the library's own strings go through <see cref="T"/>, so a plugin can translate them.</item>
@@ -15,15 +17,19 @@ namespace RebornMaterial;
 /// </summary>
 public static class M3Fork
 {
-	// Type scale, as ratios of Dalamud's default font size (before the text size setting). Sizes below body text
-	// stay close to it: Hangul gets hard to read quickly.
-	internal const float HeadlineSmallRatio = 1.4f;
-	internal const float TitleLargeRatio = 1.2f;
-	internal const float TitleMediumRatio = 1.1f;
+	// Type scale, as ratios of Dalamud's default font size (before the text size setting): upstream's pixel sizes
+	// over the 16px default font they were tuned for. Sizes below body text stay closer to it than upstream's 11px
+	// labels: Hangul gets hard to read quickly.
+	internal const float HeadlineSmallRatio = 22f / 16f;
+	internal const float TitleLargeRatio = 19f / 16f;
+	internal const float TitleMediumRatio = 16f / 16f;
 	internal const float BodySmallRatio = 0.95f;
 	internal const float LabelSmallRatio = 0.85f;
 
 	private const int IconFontCapacity = 4;
+
+	// Every glyph the Axis game font may hold except Hangul (U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7FF).
+	private static readonly ushort[] _axisRanges = [0x0020, 0x10FF, 0x1200, 0x312F, 0x3190, 0xA95F, 0xA980, 0xABFF, 0xD800, 0xFFFE, 0];
 
 	private static readonly Lock _lock = new();
 	private static readonly Dictionary<int, IFontHandle> _iconHandles = [];
@@ -33,6 +39,28 @@ public static class M3Fork
 	/// the plugin's translation function; it receives the English text and returns what to show.
 	/// </summary>
 	public static Func<string, string>? Localize { get; set; }
+
+	/// <summary>Pixel size of a type scale <paramref name="ratio"/>, before the text size setting.</summary>
+	internal static float Px(float ratio)
+	{
+		return M3.PluginInterface.UiBuilder.FontDefaultSizePx * ratio;
+	}
+
+	/// <summary>
+	/// The Axis game font at <paramref name="px"/>, with Hangul from Dalamud's Noto: the same glyphs body text gets
+	/// for the Dalamud language. Dalamud copies game glyphs in after the atlas is built, over any merged ones, so
+	/// Hangul is left out of the game glyphs; the Korean client's game fonts have it only at a few sizes, and it
+	/// comes out missing or scaled up blurry at the rest.
+	/// </summary>
+	internal static IFontHandle NewAxisFontHandle(int px)
+	{
+		return M3.PluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e => e.OnPreBuild(tk =>
+		{
+			var font = tk.AddGameGlyphs(new GameFontStyle(GameFontFamily.Axis, px), _axisRanges, default);
+			tk.AttachExtraGlyphsForDalamudLanguage(new SafeFontConfig { SizePx = px, MergeFont = font });
+			tk.Font = font;
+		}));
+	}
 
 	/// <summary>Secondary prose meant to be read, such as a setting's supporting text.</summary>
 	public static ImFontPtr BodySmall => M3Fonts.GetDefaultFont(BodySmallRatio * M3.TextScale);

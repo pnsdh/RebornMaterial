@@ -123,7 +123,7 @@ public static partial class M3Widgets
 		}
 
 		ImGui.SetCursorScreenPos(new Vector2(x, y));
-		closed = IconButton("##close", FontAwesomeIcon.Times, closeTooltip);
+		closed = IconButton("##close", FontAwesomeIcon.Times, M3Fork.T(closeTooltip));
 		return result;
 	}
 
