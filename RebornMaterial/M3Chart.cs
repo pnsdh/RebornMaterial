@@ -396,6 +396,7 @@ public static class M3Chart
 
 		var spacing = lines && count > 1 ? plot.Width / (count - 1) : plot.Width / count;
 		var every = Math.Max(1, (int)MathF.Ceiling((widest + (12f * scale)) / MathF.Max(1f, spacing)));
+		var previousRight = float.NegativeInfinity;
 
 		for (var i = 0; i < count; i += every)
 		{
@@ -404,7 +405,16 @@ public static class M3Chart
 				: plot.Left + (spacing * (i + 0.5f));
 			var size = ImGui.CalcTextSize(labels[i]);
 			var left = MathF.Max(plot.Left - (size.X * 0.5f), MathF.Min(x - (size.X * 0.5f), plot.Right - size.X));
+
+			// Fork: a label pushed in at the plot's edge can run into the one before it; skip it then. Labels
+			// 'every' apart are already at least 12px clear of each other, so this only catches the pushed ones.
+			if (left < previousRight + (6f * scale))
+			{
+				continue;
+			}
+
 			drawList.AddText(new Vector2(left, plot.Bottom + (4f * scale)), M3.U32(s.OnSurfaceVariant), labels[i]);
+			previousRight = left + size.X;
 		}
 	}
 
