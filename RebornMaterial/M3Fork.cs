@@ -12,6 +12,8 @@ namespace RebornMaterial;
 /// than body text when the default font is large);</item>
 /// <item><see cref="M3Draw"/> draws icons with <see cref="IconFont"/>, which follows the text size, and centres
 /// them on the glyph's inked shape;</item>
+/// <item>navigation drawer items, tree rows and setting rows put leading icons in a fixed-width slot
+/// (<see cref="IconSlotWidth"/>), so their labels line up;</item>
 /// <item>the library's own strings go through <see cref="T"/>, so a plugin can translate them.</item>
 /// </list>
 /// </summary>
@@ -70,7 +72,7 @@ public static class M3Fork
 	/// icon size. Glyphs differ in width, more visibly once they follow the text size, so text placed after each
 	/// icon's own width starts at a different x on every row; centred in this slot, rows line up.
 	/// </summary>
-	public static float IconSlotWidth(float minimum)
+	internal static float IconSlotWidth(float minimum)
 	{
 		return MathF.Max(minimum, IconFont.FontSize * 1.25f);
 	}
