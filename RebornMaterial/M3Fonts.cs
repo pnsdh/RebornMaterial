@@ -101,7 +101,7 @@ public static class M3Fonts
 		{
 			using var pushed = handle.Push();
 			var font = ImGui.GetFont();
-			return font.IsLoaded() ? font : null;
+			return font.IsLoaded() ? font : (ImFontPtr?)null; // Fork: not a null-pointer ImFontPtr (see M3Text.FontOf)
 		}
 		catch (Exception)
 		{

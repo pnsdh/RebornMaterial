@@ -166,7 +166,7 @@ public static class M3Fork
 		{
 			using var locked = handle.Lock();
 			var font = locked.ImFont;
-			return font.IsLoaded() ? font : null;
+			return font.IsLoaded() ? font : (ImFontPtr?)null; // a bare null becomes a null-pointer ImFontPtr
 		}
 		catch (Exception)
 		{

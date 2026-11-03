@@ -96,7 +96,9 @@ public static class M3Text
 			M3TextStyle.Title => M3.TitleMedium,
 			M3TextStyle.Heading => M3.TitleLarge,
 			M3TextStyle.Label => M3.LabelSmall,
-			_ => null,
+			// Fork: a bare null here becomes a null-pointer ImFontPtr (ImFontPtr converts from ImFont*), which pushes
+			// the atlas default font and ignores the text size.
+			_ => (ImFontPtr?)null,
 		};
 	}
 
