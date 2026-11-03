@@ -110,10 +110,15 @@ public static partial class M3Widgets
 
 			var own = color;
 			bool picked;
+			bool swatchHovered;
 			using (ImRaii.PushId(id))
 			{
 				picked = ColorSwatch("custom", ref own, alpha: alpha, enabled: enabled, tooltip: matched ? M3Fork.T("Pick any colour") : M3Fork.T("Your own colour. Click to change it."));
+				swatchHovered = enabled && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
 			}
+
+			// Fork: a colour wheel, or a ring of hues around the picked colour, so it reads as the picker.
+			M3Fork.PickerSwatchMark(drawList, swatchMin + new Vector2(radius), radius, matched ? null : (alpha ? color : color with { W = 1f }), swatchHovered, dim);
 
 			if (picked)
 			{

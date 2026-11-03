@@ -203,6 +203,64 @@ public static partial class M3Fork
 		return Localize?.Invoke(english) ?? english;
 	}
 
+	/// <summary>
+	/// Marks the colour swatch at <paramref name="center"/> as the one that opens the colour picker. While it shows
+	/// no colour of its own, it becomes a colour wheel (hues around the edge, white in the middle); once it shows
+	/// <paramref name="own"/>, a thin ring of hues stays around that colour. The swatch's outline is drawn again on
+	/// top, since the wheel's own edge isn't anti-aliased.
+	/// </summary>
+	internal static void PickerSwatchMark(ImDrawListPtr drawList, Vector2 center, float radius, Vector4? own, bool hovered, float dim)
+	{
+		const int segments = 48;
+		var scale = M3.Scale;
+		var inner = own is null ? 0f : radius - (3.5f * scale);
+		var uv = ImGui.GetFontTexUvWhitePixel();
+		var white = M3.U32(Vector4.One, dim);
+		for (var i = 0; i < segments; i++)
+		{
+			var from = Hue(i / (float)segments);
+			var to = Hue((i + 1) / (float)segments);
+			var c0 = M3.U32(from, dim);
+			var c1 = M3.U32(to, dim);
+			var d0 = Direction(i / (float)segments);
+			var d1 = Direction((i + 1) / (float)segments);
+			if (own is null)
+			{
+				drawList.PrimReserve(3, 3);
+				drawList.PrimVtx(center, uv, white);
+				drawList.PrimVtx(center + (d0 * radius), uv, c0);
+				drawList.PrimVtx(center + (d1 * radius), uv, c1);
+			}
+			else
+			{
+				drawList.PrimReserve(6, 6);
+				drawList.PrimVtx(center + (d0 * inner), uv, c0);
+				drawList.PrimVtx(center + (d0 * radius), uv, c0);
+				drawList.PrimVtx(center + (d1 * radius), uv, c1);
+				drawList.PrimVtx(center + (d0 * inner), uv, c0);
+				drawList.PrimVtx(center + (d1 * radius), uv, c1);
+				drawList.PrimVtx(center + (d1 * inner), uv, c1);
+			}
+		}
+
+		if (own is { } shown)
+		{
+			drawList.AddCircle(center, inner, M3.U32(shown, shown.W * dim), 32, 1f * scale);
+		}
+
+		drawList.AddCircle(center, radius, M3.U32(M3.Scheme.Outline, (hovered ? 1f : 0.6f) * dim), 32, 1.5f * scale);
+
+		// Red at the top, going clockwise.
+		static Vector2 Direction(float turn) => new(MathF.Sin(turn * MathF.Tau), -MathF.Cos(turn * MathF.Tau));
+
+		static Vector4 Hue(float turn)
+		{
+			float r = 0f, g = 0f, b = 0f;
+			ImGui.ColorConvertHSVtoRGB(turn, 0.85f, 1f, ref r, ref g, ref b);
+			return new Vector4(r, g, b, 1f);
+		}
+	}
+
 	internal static void DisposeAll()
 	{
 		lock (_lock)
