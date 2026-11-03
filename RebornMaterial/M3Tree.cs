@@ -76,9 +76,11 @@ public static class M3Tree
 		}
 		else if (icon != FontAwesomeIcon.None)
 		{
+			// Fork: centred in a fixed-width slot, so labels line up (see M3Fork.IconSlotWidth).
 			var iconSize = M3Draw.MeasureIcon(icon);
-			M3Draw.Icon(drawList, icon, new Vector2(x, min.Y + ((height - iconSize.Y) * 0.5f)), color ?? (selected ? s.OnSecondaryContainer : s.Primary));
-			x += iconSize.X + (8f * scale);
+			var slot = M3Fork.IconSlotWidth(iconSlot);
+			M3Draw.Icon(drawList, icon, new Vector2(x + ((slot - iconSize.X) * 0.5f), min.Y + ((height - iconSize.Y) * 0.5f)), color ?? (selected ? s.OnSecondaryContainer : s.Primary));
+			x += slot + (8f * scale);
 		}
 
 		var trailingSize = string.IsNullOrEmpty(trailing) ? Vector2.Zero : ImGui.CalcTextSize(trailing);

@@ -74,7 +74,7 @@ public static class M3SettingRow
 
 	private static float IconWidth(FontAwesomeIcon icon)
 	{
-		return icon == FontAwesomeIcon.None ? 0f : M3Draw.MeasureIcon(icon).X + (10f * M3.Scale);
+		return icon == FontAwesomeIcon.None ? 0f : M3Fork.IconSlotWidth(0f) + (10f * M3.Scale); // Fork: fixed slot
 	}
 
 	public static float MaxControlWidth(FontAwesomeIcon leadingIcon = FontAwesomeIcon.None)
@@ -153,7 +153,7 @@ public static class M3SettingRow
 		{
 			var iconSize = M3Draw.MeasureIcon(leadingIcon);
 			M3Draw.Icon(drawList, leadingIcon,
-				new Vector2(min.X + PaddingX, min.Y + PaddingY + ((headlineHeight - iconSize.Y) * 0.5f)),
+				new Vector2(min.X + PaddingX + ((M3Fork.IconSlotWidth(0f) - iconSize.X) * 0.5f), min.Y + PaddingY + ((headlineHeight - iconSize.Y) * 0.5f)),
 				M3.Alpha(s.Primary, disabled ? M3.DisabledContent : 0.9f));
 		}
 
@@ -243,7 +243,7 @@ public static class M3SettingRow
 		var tone = accent ?? s.Primary;
 		var width = MathF.Max(64f * scale, ImGui.GetContentRegionAvail().X - M3Card.RightInset);
 
-		var iconWidth = leadingIcon == FontAwesomeIcon.None ? 0f : M3Draw.MeasureIcon(leadingIcon).X + (12f * scale);
+		var iconWidth = leadingIcon == FontAwesomeIcon.None ? 0f : M3Fork.IconSlotWidth(0f) + (12f * scale); // Fork: fixed slot
 		var trailingWidth = trailingIcon == FontAwesomeIcon.None ? 0f : M3Draw.MeasureIcon(trailingIcon).X + (12f * scale);
 		var textWidth = MathF.Max(32f * scale, width - (PaddingX * 2f) - iconWidth - trailingWidth);
 
@@ -274,7 +274,7 @@ public static class M3SettingRow
 		if (leadingIcon != FontAwesomeIcon.None)
 		{
 			var iconSize = M3Draw.MeasureIcon(leadingIcon);
-			M3Draw.Icon(drawList, leadingIcon, new Vector2(min.X + PaddingX, min.Y + PaddingY + ((labelSize.Y - iconSize.Y) * 0.5f)), tone);
+			M3Draw.Icon(drawList, leadingIcon, new Vector2(min.X + PaddingX + ((M3Fork.IconSlotWidth(0f) - iconSize.X) * 0.5f), min.Y + PaddingY + ((labelSize.Y - iconSize.Y) * 0.5f)), tone);
 		}
 
 		_ = M3Draw.WrappedText(label, new Vector2(textLeft, min.Y + PaddingY), textWidth, M3.Alpha(s.OnSurface, 0.95f));

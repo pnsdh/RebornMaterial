@@ -136,9 +136,11 @@ public static class M3Navigation
 
 		var iconSize = ItemIconSize(item, textureSize);
 		var iconX = min.X + M3Style.Spacing(16f, 12f);
-		ItemIcon(drawList, item, new Vector2(iconX, min.Y + ((height - iconSize.Y) * 0.5f)), textureSize, iconColor);
+		// Fork: icons centred in one fixed-width slot, so every label starts at the same x (see M3Fork.IconSlotWidth).
+		var slot = item.Texture != null ? MathF.Max(iconSize.X, 18f * scale) : M3Fork.IconSlotWidth(18f * scale);
+		ItemIcon(drawList, item, new Vector2(iconX + ((slot - iconSize.X) * 0.5f), min.Y + ((height - iconSize.Y) * 0.5f)), textureSize, iconColor);
 
-		var textX = iconX + MathF.Max(iconSize.X, 18f * scale) + M3Style.Spacing(14f, 10f);
+		var textX = iconX + slot + M3Style.Spacing(14f, 10f);
 		var available = MathF.Max(16f * scale, max.X - textX - (12f * scale));
 		var label = Truncate(item.Label, available);
 		var labelSize = ImGui.CalcTextSize(label);

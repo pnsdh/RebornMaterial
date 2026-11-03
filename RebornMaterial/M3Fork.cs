@@ -65,6 +65,16 @@ public static class M3Fork
 	/// <summary>Secondary prose meant to be read, such as a setting's supporting text.</summary>
 	public static ImFontPtr BodySmall => M3Fonts.GetDefaultFont(BodySmallRatio * M3.TextScale);
 
+	/// <summary>
+	/// Width of a column of icons, at least <paramref name="minimum"/>: Font Awesome's fixed width (1.25 em) at the
+	/// icon size. Glyphs differ in width, more visibly once they follow the text size, so text placed after each
+	/// icon's own width starts at a different x on every row; centred in this slot, rows line up.
+	/// </summary>
+	public static float IconSlotWidth(float minimum)
+	{
+		return MathF.Max(minimum, IconFont.FontSize * 1.25f);
+	}
+
 	/// <summary>Font Awesome at body text size, so icons scale with the text beside them.</summary>
 	public static ImFontPtr IconFont
 	{
