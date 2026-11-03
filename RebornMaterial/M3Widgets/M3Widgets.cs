@@ -50,6 +50,20 @@ public static partial class M3Widgets
 		return hidden < 0 ? (label, label) : (label[..hidden], label);
 	}
 
+	private static ReadOnlySpan<char> SplitLabelSpan(string label, out ReadOnlySpan<char> id)
+	{
+		var explicitId = label.IndexOf("###", StringComparison.Ordinal);
+		if (explicitId >= 0)
+		{
+			id = explicitId + 3 < label.Length ? label.AsSpan(explicitId + 3) : label;
+			return label.AsSpan(0, explicitId);
+		}
+
+		id = label;
+		var hidden = label.IndexOf("##", StringComparison.Ordinal);
+		return hidden < 0 ? label : label.AsSpan(0, hidden);
+	}
+
 	private static string FormatValue(string format, float value)
 	{
 		if (string.IsNullOrEmpty(format))
@@ -145,5 +159,7 @@ public static partial class M3Widgets
 		ResetStructure();
 		ResetHotkeys();
 		ResetReorder();
+		ResetRange();
+		ResetCopy();
 	}
 }

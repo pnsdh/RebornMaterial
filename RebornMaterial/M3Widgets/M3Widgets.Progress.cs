@@ -20,7 +20,7 @@ public static partial class M3Widgets
 		var rounding = size.Y * 0.5f;
 		var centerY = (min.Y + max.Y) * 0.5f;
 
-		fraction = Math.Clamp(fraction, 0f, 1f);
+		fraction = float.IsNaN(fraction) ? 0f : Math.Clamp(fraction, 0f, 1f);
 		var split = float.Lerp(min.X, max.X, fraction);
 
 		var gap = fraction > 0f && fraction < 1f ? MathF.Min(4f * scale, size.Y) : 0f;
@@ -115,7 +115,7 @@ public static partial class M3Widgets
 
 		if (fraction is { } value)
 		{
-			value = Math.Clamp(value, 0f, 1f);
+			value = float.IsNaN(value) ? 0f : Math.Clamp(value, 0f, 1f);
 
 			var gap = MathF.Min(0.1f, stroke * 1.5f / (MathF.Tau * radius));
 			if (value <= 0.001f)
@@ -143,13 +143,13 @@ public static partial class M3Widgets
 
 	public static void Spinner(ImDrawListPtr drawList, Vector2 center, float radius, Vector4 color, float stroke)
 	{
-		const float Cycle = 1.333f;
-		var time = (float)ImGui.GetTime();
-		var cycles = MathF.Floor(time / Cycle);
-		var phase = (time - (cycles * Cycle)) / Cycle;
+		const double Cycle = 1.333;
+		var time = ImGui.GetTime();
+		var cycles = Math.Floor(time / Cycle);
+		var phase = (float)((time - (cycles * Cycle)) / Cycle);
 		var head = Ease(phase / 0.5f) * 0.75f;
 		var tail = Ease((phase - 0.5f) / 0.5f) * 0.75f;
-		var start = ((time * 0.25f) + (cycles * 0.75f) + tail) % 1f;
+		var start = ((float)(((time * 0.25) + (cycles * 0.75)) % 1.0) + tail) % 1f;
 		var end = start + (head - tail) + 0.03f;
 
 		M3Draw.Arc(drawList, center, radius, start, end, color, stroke);

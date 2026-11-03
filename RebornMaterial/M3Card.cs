@@ -2,7 +2,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace RebornMaterial;
 
-// Cards paint their background using last frame's height. Splitting the draw list instead breaks inside tables, which split it too.
 public static class M3CardHost
 {
 	private const int MaxTrackedCards = 512;
@@ -51,8 +50,6 @@ public static class M3Card
 	public static float TopPadding => M3Style.Spacing(14f, 8f);
 	public static float BottomPadding => M3Style.Spacing(14f, 8f);
 	public static float Gap => M3Style.Spacing(10f, 6f);
-
-	// The space left under a card, before whatever comes next.
 	public static float Margin => M3Style.Spacing(8f, 4f);
 
 	public static Scope Begin(string id, string? title = null, FontAwesomeIcon icon = FontAwesomeIcon.None, Vector4? accent = null, M3CardStyle style = M3CardStyle.Filled, string? subtitle = null)
@@ -104,11 +101,15 @@ public static class M3Card
 			cursorY += Gap - (4f * scale);
 		}
 
-		// Use Indent, not the cursor, so wrapped lines keep the inset.
-		ImGui.Indent(ContentInset);
+		var inset = ContentInset;
+		if (inset > 0f)
+		{
+			ImGui.Indent(inset);
+		}
+
 		PushContentWrap(min.X + width);
-		ImGui.SetCursorScreenPos(new Vector2(min.X + ContentInset, cursorY));
-		return new Scope(key, min, width, ContentInset);
+		ImGui.SetCursorScreenPos(new Vector2(min.X + inset, cursorY));
+		return new Scope(key, min, width, inset);
 	}
 
 	public static void PushContentWrap(float cardRightScreenX)
@@ -154,11 +155,19 @@ public static class M3Card
 	{
 		public void Dispose()
 		{
+			if (width <= 0f)
+			{
+				return;
+			}
+
 			var scale = M3.Scale;
 			var contentBottom = ImGui.GetCursorScreenPos().Y;
 
 			ImGui.PopTextWrapPos();
-			ImGui.Unindent(indent);
+			if (indent > 0f)
+			{
+				ImGui.Unindent(indent);
+			}
 
 			var bottom = MathF.Max(contentBottom + BottomPadding, min.Y + (40f * scale));
 			M3CardHost.RecordHeight(id, bottom - min.Y);
@@ -198,7 +207,7 @@ public static class M3ExpandableCard
 		}
 
 		var drawList = ImGui.GetWindowDrawList();
-		var progress = M3Motion.Approach($"{id}_chevron", expanded ? 1f : 0f, M3Motion.EmphasisedDuration);
+		var progress = M3Motion.Approach(ImGui.GetID($"{id}_chevron"), expanded ? 1f : 0f, M3Motion.EmphasisedDuration);
 
 		if (hovered || held)
 		{
@@ -262,12 +271,15 @@ public static class M3ExpandableCard
 		DrawChevron(drawList, chevronCenter, progress, M3.Alpha(s.OnSurfaceVariant, hovered ? 1f : 0.8f));
 		M3Draw.FocusRing(min, new Vector2(min.X + width, min.Y + headerHeight), M3.ShapeMedium);
 
-		// Follow the open state, not the animation, or the divider gets left under a closed section.
 		var indent = 0f;
 		if (expanded)
 		{
 			indent = M3Card.ContentInset;
-			ImGui.Indent(indent);
+			if (indent > 0f)
+			{
+				ImGui.Indent(indent);
+			}
+
 			M3Card.PushContentWrap(min.X + width);
 
 			drawList.AddLine(
@@ -335,11 +347,20 @@ public static class M3ExpandableCard
 
 		public void Dispose()
 		{
+			if (width <= 0f)
+			{
+				return;
+			}
+
 			var contentBottom = ImGui.GetCursorScreenPos().Y;
+
+			if (expanded)
+			{
+				ImGui.PopTextWrapPos();
+			}
 
 			if (indent > 0f)
 			{
-				ImGui.PopTextWrapPos();
 				ImGui.Unindent(indent);
 			}
 

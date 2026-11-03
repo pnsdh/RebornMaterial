@@ -42,7 +42,7 @@ public static partial class M3Widgets
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 		var height = SegmentedHeight;
-		var total = width ?? SegmentedWidth(segments, labelFont);
+		var total = MathF.Max(width ?? SegmentedWidth(segments, labelFont), segments.Length);
 		var segmentWidth = total / segments.Length;
 		var rounding = height * 0.5f;
 		var origin = ImGui.GetCursorScreenPos();
@@ -95,11 +95,15 @@ public static partial class M3Widgets
 				: M3.Alpha(s.OnSurface, M3.DisabledContent);
 			var iconSize = segment.Icon == FontAwesomeIcon.None ? Vector2.Zero : M3Draw.MeasureIcon(segment.Icon);
 			var gap = segment.Icon == FontAwesomeIcon.None ? 0f : 6f * scale;
+			string label;
 
 			using (ImRaii.PushFont(labelFont.GetValueOrDefault(), labelFont.HasValue))
 			{
-				var textSize = ImGui.CalcTextSize(segment.Label);
-				var cursorX = segmentMin.X + ((segmentWidth - iconSize.X - gap - textSize.X) * 0.5f);
+				var pad = 14f * scale;
+				label = M3Navigation.Truncate(segment.Label, MathF.Max(0f, segmentWidth - (pad * 2f) - iconSize.X - gap + 1f));
+				var textSize = ImGui.CalcTextSize(label);
+				var cursorX = MathF.Max(segmentMin.X + MathF.Min(pad, segmentWidth * 0.5f), segmentMin.X + ((segmentWidth - iconSize.X - gap - textSize.X) * 0.5f));
+				drawList.PushClipRect(segmentMin, segmentMax, true);
 
 				if (segment.Icon != FontAwesomeIcon.None)
 				{
@@ -107,7 +111,8 @@ public static partial class M3Widgets
 					cursorX += iconSize.X + gap;
 				}
 
-				drawList.AddText(new Vector2(cursorX, segmentMin.Y + ((height - textSize.Y) * 0.5f)), M3.U32(content), segment.Label);
+				drawList.AddText(new Vector2(cursorX, segmentMin.Y + ((height - textSize.Y) * 0.5f)), M3.U32(content), label);
+				drawList.PopClipRect();
 			}
 
 			if (i > 0)
@@ -120,7 +125,7 @@ public static partial class M3Widgets
 
 			if (mouseOver)
 			{
-				M3Tooltip.Show(segment.Tooltip);
+				M3Tooltip.Show(segment.Tooltip ?? (label != segment.Label ? segment.Label : null));
 			}
 		}
 

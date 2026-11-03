@@ -45,10 +45,8 @@ public sealed class M3WindowFold
 
 	public float Rounding => _rounding;
 
-	// Style alpha for the open window's contents. They fade out faster than the window folds, so they're gone before the pill closes over them.
 	public float ContentAlpha => ImGui.GetStyle().Alpha * (1f - MathF.Min(1f, Amount * 1.4f));
 
-	// ImGui truncates window positions and sizes, so anchors stay on whole pixels or each fold drifts the window.
 	private Vector2 AnchorInset => Vector2.Round(new Vector2(_openPadding.X, _openPadding.Y + BarTop));
 
 	public void Restore()
@@ -67,7 +65,6 @@ public sealed class M3WindowFold
 		_minimized = false;
 	}
 
-	// Folds the window from code. Before the window has drawn once, it folds on its first frame instead.
 	public void Minimize()
 	{
 		if (_minimized)
@@ -113,7 +110,8 @@ public sealed class M3WindowFold
 		var target = _minimized ? 1f : 0f;
 		if (_time != target)
 		{
-			var step = ImGui.GetIO().DeltaTime / M3Motion.EmphasisedDuration;
+			var duration = M3Motion.Scaled(M3Motion.EmphasisedDuration);
+			var step = duration <= 0f ? 1f : ImGui.GetIO().DeltaTime / duration;
 			_time = _minimized ? MathF.Min(1f, _time + step) : MathF.Max(0f, _time - step);
 		}
 
@@ -137,7 +135,6 @@ public sealed class M3WindowFold
 
 		window.Position = resting ? null : Vector2.Round(new Vector2(anchor.X + inset.X - size.X, anchor.Y - inset.Y));
 		window.PositionCondition = ImGuiCond.Always;
-		// The half pixel stops Dalamud's GlobalScale round trip from truncating a pixel away.
 		window.Size = (size + new Vector2(0.5f)) / ImGuiHelpers.GlobalScale;
 		window.SizeCondition = ImGuiCond.Always;
 		window.SizeConstraints = new WindowSizeConstraints()
@@ -146,7 +143,6 @@ public sealed class M3WindowFold
 			MaximumSize = MaximumSize,
 		};
 
-		// Don't save settings while folded, so the window reopens at its real size.
 		window.Flags |= ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings
 			| (resting ? ImGuiWindowFlags.None : ImGuiWindowFlags.NoMove);
 		_settled = !_minimized && _time <= 0f;
@@ -191,8 +187,6 @@ public sealed class M3WindowFold
 		return (new Vector2(_anchorOpen.X + inset.X - _restoreSize.X, _anchorOpen.Y - inset.Y), _restoreSize);
 	}
 
-	// A child over the open window's contents, inside its padding, so they keep their layout while the window folds.
-	// Call it while Amount is below 1, inside a push of ContentAlpha. Draw anything window-wide, like a backdrop, before it.
 	public ImRaii.ChildDisposable BeginContent(string id)
 	{
 		var (pos, size) = OpenRect();
@@ -259,8 +253,6 @@ public sealed class M3WindowFold
 		_minimized = true;
 	}
 
-	// ImGui keeps a window's size across a plugin reload, so one left folded by the last instance would come back pill-sized.
-	// Folding stops ImGui saving the window, so its saved size is still the open one.
 	private void ReopenLeftover(Window window)
 	{
 		var existing = ImGuiP.FindWindowByName(window.WindowName);
@@ -295,7 +287,6 @@ public sealed class M3WindowFold
 		return new Vector2(pos.X + _restoreSize.X - inset.X, pos.Y + inset.Y);
 	}
 
-	// Where a window of this size opens out of a pill whose top-right corner is at folded. It stays on screen if the pill is.
 	private Vector2 OpenPositionNear(Vector2 folded, Vector2 size)
 	{
 		var inset = AnchorInset;

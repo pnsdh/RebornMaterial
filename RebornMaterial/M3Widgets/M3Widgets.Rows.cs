@@ -183,7 +183,7 @@ public static partial class M3Widgets
 		return changed;
 	}
 
-	public static bool RowText(string label, ref string text, string? hint = null, string? supporting = null, int maxLength = 256, bool enabled = true)
+	public static bool RowText(string label, ref string text, string? hint = null, string? supporting = null, int maxLength = 256, bool enabled = true, bool password = false)
 	{
 		var (display, id) = SplitLabel(label);
 		var width = MathF.Min(240f * M3.Scale, M3SettingRow.MaxControlWidth() * 0.6f);
@@ -193,7 +193,7 @@ public static partial class M3Widgets
 		bool changed;
 		using (ImRaii.Disabled(!enabled))
 		{
-			changed = M3TextField.Draw($"##{id}_text", hint ?? string.Empty, ref text, width, maxLength);
+			changed = M3TextField.Draw($"##{id}_text", hint ?? string.Empty, ref text, width, maxLength, password);
 		}
 
 		M3SettingRow.End(row);

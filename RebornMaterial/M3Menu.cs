@@ -2,7 +2,6 @@ using Dalamud.Interface.Textures.TextureWraps;
 
 namespace RebornMaterial;
 
-// Popup menus. Open one with Open and Begin, or on a right-click with BeginContext. Item closes every open menu when picked.
 public static class M3Menu
 {
 	private const int StyleVars = 3;
@@ -22,6 +21,12 @@ public static class M3Menu
 		return Finish(ImGui.BeginPopup(id));
 	}
 
+	internal static Scope Begin(ImU8String id)
+	{
+		PushStyle();
+		return Finish(ImGui.BeginPopup(id));
+	}
+
 	public static Scope BeginContext(string id)
 	{
 		PushStyle();
@@ -31,9 +36,8 @@ public static class M3Menu
 	public static Scope BeginSub(string id, string label, FontAwesomeIcon icon = FontAwesomeIcon.None, bool enabled = true, IDalamudTextureWrap? texture = null)
 	{
 		var scale = M3.Scale;
-		var popupId = $"{id}_sub";
-		var key = ImGui.GetID(popupId);
-		var open = ImGui.IsPopupOpen(popupId);
+		var key = ImGui.GetID($"{id}_sub");
+		var open = ImGui.IsPopupOpen($"{id}_sub");
 		var parentMin = ImGui.GetWindowPos();
 		var parentMax = parentMin + ImGui.GetWindowSize();
 
@@ -44,7 +48,7 @@ public static class M3Menu
 
 		if (enabled && !open && (pressed || rowHovered))
 		{
-			ImGui.OpenPopup(popupId);
+			ImGui.OpenPopup($"{id}_sub");
 		}
 
 		var width = _subWidths.TryGetValue(key, out var known) ? known : 200f * scale;
@@ -57,7 +61,7 @@ public static class M3Menu
 
 		ImGui.SetNextWindowPos(new Vector2(x, rowMin.Y - (6f * scale)));
 		PushStyle();
-		var scope = Finish(ImGui.BeginPopup(popupId));
+		var scope = Finish(ImGui.BeginPopup($"{id}_sub"));
 		if (!scope.IsOpen)
 		{
 			return scope;
@@ -65,7 +69,6 @@ public static class M3Menu
 
 		_subWidths[key] = ImGui.GetWindowWidth();
 
-		// Moving onto another row of the parent menu closes this one.
 		var mouse = ImGui.GetMousePos();
 		var overParent = mouse.X >= parentMin.X && mouse.X <= parentMax.X && mouse.Y >= parentMin.Y && mouse.Y <= parentMax.Y;
 		var overRow = mouse.Y >= rowMin.Y && mouse.Y <= rowMax.Y;
@@ -88,7 +91,6 @@ public static class M3Menu
 		return true;
 	}
 
-	// Closes the menu this runs in, and every menu it was opened from.
 	public static void Close()
 	{
 		if (_depth > 0)

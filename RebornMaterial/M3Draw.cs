@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility.Raii;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RebornMaterial;
 
@@ -139,7 +139,6 @@ public static class M3Draw
 		drawList.AddRectFilledMultiColor(min, max, topColor, topColor, bottomColor, bottomColor);
 	}
 
-	// A tint across the top of the current window that fades into its surface, for a window that draws its own header.
 	public static void WindowBackdrop(float rounding, float height = 200f)
 	{
 		var s = M3.Scheme;
@@ -150,7 +149,6 @@ public static class M3Draw
 		var max = new Vector2(windowPos.X + windowSize.X, windowPos.Y + MathF.Min(height * M3.Scale, windowSize.Y));
 		rounding = MathF.Min(rounding, (max.Y - windowPos.Y) * 0.5f);
 
-		// Multi-color rects can't be rounded, so a solid strip draws the rounded top corners.
 		drawList.PushClipRect(windowPos, windowPos + windowSize, false);
 		if (rounding > 0f)
 		{
@@ -195,7 +193,6 @@ public static class M3Draw
 		drawList.AddText(iconFont, fontSize, position, M3.U32(color), text);
 	}
 
-	// Outlines the last item while the keyboard or a gamepad has it focused. Mouse users never see it.
 	public static void FocusRing(Vector2 min, Vector2 max, float rounding)
 	{
 		if (!ImGui.IsItemFocused() || !ImGui.GetIO().NavVisible)
@@ -236,14 +233,18 @@ public static class M3Draw
 public static class M3Motion
 {
 	private const int MaxTrackedValues = 512;
-
 	private static readonly M3FrameCache<float> _values = new(MaxTrackedValues);
-
 	public const float FastDuration = 0.14f;
 	public const float EmphasisedDuration = 0.28f;
 
+	public static float Scaled(float duration)
+	{
+		return duration * M3.MotionScale;
+	}
+
 	public static float Approach(uint id, float target, float duration)
 	{
+		duration = Scaled(duration);
 		if (_values.TryGet(id, out var current))
 		{
 			if (current == target)
@@ -268,6 +269,18 @@ public static class M3Motion
 	public static float Approach(string id, float target, float duration)
 	{
 		return Approach(ImGui.GetID(id), target, duration);
+	}
+
+	public static float Step(float current, float target, float duration)
+	{
+		duration = Scaled(duration);
+		if (duration <= 0f || MathF.Abs(target - current) < 0.001f)
+		{
+			return target;
+		}
+
+		var step = 1f - MathF.Exp(-ImGui.GetIO().DeltaTime / (duration * 0.35f));
+		return float.Lerp(current, target, Math.Clamp(step, 0f, 1f));
 	}
 
 	public static void Reset()

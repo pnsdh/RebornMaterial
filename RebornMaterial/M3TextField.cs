@@ -16,11 +16,9 @@ public static class M3TextField
 		var drawList = ImGui.GetWindowDrawList();
 		var hovered = ImGui.IsMouseHoveringRect(min, max) && ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows);
 
-		// The container goes down first so the input's text lands on top of it.
 		var fill = hovered ? M3.StateLayer(s.SurfaceContainerHighest, s.OnSurface, true, false) : s.SurfaceContainerHighest;
 		drawList.AddRectFilled(min, max, M3.U32(fill), M3.ShapeExtraSmall, ImDrawFlags.RoundCornersTop);
 
-		// Vertical frame padding that makes the input exactly as tall as the container.
 		var padding = new Vector2(12f * scale, MathF.Max(0f, (height - ImGui.GetTextLineHeight()) * 0.5f));
 		var transparent = new Vector4(0f, 0f, 0f, 0f);
 		var flags = password ? ImGuiInputTextFlags.Password : ImGuiInputTextFlags.None;

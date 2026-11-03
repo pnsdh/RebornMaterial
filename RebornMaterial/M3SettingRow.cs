@@ -1,5 +1,6 @@
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility.Raii;
+using System.Text;
 
 namespace RebornMaterial;
 
@@ -20,6 +21,11 @@ public static class M3SubGroup
 	{
 		public void Dispose()
 		{
+			if (indent <= 0f)
+			{
+				return;
+			}
+
 			var scale = M3.Scale;
 			ImGui.Dummy(new Vector2(0f, 2f * scale));
 			var end = ImGui.GetCursorScreenPos();
@@ -90,7 +96,6 @@ public static class M3SettingRow
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 
-		// End() already starts a new line. Checking for one here would misfire in table cells.
 		var min = ImGui.GetCursorScreenPos();
 		var width = RowWidth;
 
@@ -159,14 +164,7 @@ public static class M3SettingRow
 
 			if (strikeThrough)
 			{
-				var lineCount = MathF.Max(1f, MathF.Round(labelSize.Y / ImGui.GetTextLineHeight()));
-				var lineHeight = labelSize.Y / lineCount;
-				for (var line = 0; line < (int)lineCount; line++)
-				{
-					var y = labelY + (lineHeight * (line + 0.5f));
-					var lineWidth = line == (int)lineCount - 1 ? MathF.Min(labelSize.X, labelWidth) : labelWidth;
-					drawList.AddLine(new Vector2(textLeft, y), new Vector2(textLeft + lineWidth, y), M3.U32(contentColor, 0.7f), 1f * scale);
-				}
+				StrikeLines(drawList, label, new Vector2(textLeft, labelY), labelWidth, M3.U32(contentColor, 0.7f), 1f * scale);
 			}
 		}
 
@@ -197,6 +195,39 @@ public static class M3SettingRow
 			Hovered = hovered,
 			ControlBelow = controlBelow,
 		};
+	}
+
+	private static void StrikeLines(ImDrawListPtr drawList, string label, Vector2 origin, float wrapWidth, uint color, float thickness)
+	{
+		var font = ImGui.GetFont();
+		var fontScale = ImGui.GetFontSize() / font.FontSize;
+		var lineHeight = ImGui.GetTextLineHeight();
+		var byteCount = Encoding.UTF8.GetByteCount(label);
+		var utf8 = byteCount <= 512 ? stackalloc byte[byteCount] : new byte[byteCount];
+		_ = Encoding.UTF8.GetBytes(label, utf8);
+
+		var y = origin.Y + (lineHeight * 0.5f);
+		ReadOnlySpan<byte> rest = utf8;
+		while (!rest.IsEmpty)
+		{
+			var newline = rest.IndexOf((byte)'\n');
+			var paragraph = newline < 0 ? rest : rest[..newline];
+			rest = newline < 0 ? [] : rest[(newline + 1)..];
+
+			do
+			{
+				var cut = paragraph.IsEmpty ? 0 : Math.Clamp(font.CalcWordWrapPositionA(fontScale, paragraph, wrapWidth), 1, paragraph.Length);
+				var width = cut > 0 ? MathF.Min(ImGui.CalcTextSize(paragraph[..cut]).X, wrapWidth) : 0f;
+				if (width > 0f)
+				{
+					drawList.AddLine(new Vector2(origin.X, y), new Vector2(origin.X + width, y), color, thickness);
+				}
+
+				paragraph = paragraph[cut..].TrimStart(" \t"u8);
+				y += lineHeight;
+			}
+			while (!paragraph.IsEmpty);
+		}
 	}
 
 	public static void End(in M3RowInfo row)

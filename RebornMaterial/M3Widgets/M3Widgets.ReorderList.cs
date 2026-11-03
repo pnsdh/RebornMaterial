@@ -6,6 +6,7 @@ public static partial class M3Widgets
 {
 	private static uint _reorderList;
 	private static int _reorderIndex = -1;
+	private static int _reorderFrame;
 
 	public static float ReorderRowHeight => M3.FitText(36f, 8f);
 
@@ -17,6 +18,12 @@ public static partial class M3Widgets
 		var gap = 2f * scale;
 		var width = MathF.Max(32f * scale, ImGui.GetContentRegionAvail().X);
 		var listKey = ImGui.GetID(id);
+
+		if (_reorderList == listKey && _reorderFrame < ImGui.GetFrameCount() - 1)
+		{
+			ResetReorder();
+		}
+
 		var ours = _reorderList == listKey && _reorderIndex >= 0;
 		var dragging = ours && ImGui.IsMouseDragging(ImGuiMouseButton.Left, 4f * scale);
 		var moved = false;
@@ -43,6 +50,7 @@ public static partial class M3Widgets
 				selected = i;
 				_reorderList = listKey;
 				_reorderIndex = i;
+				_reorderFrame = ImGui.GetFrameCount();
 			}
 
 			if (enabled && focused && !moved && ImGui.GetIO().KeyCtrl)
@@ -92,6 +100,7 @@ public static partial class M3Widgets
 
 		if (_reorderList == listKey && _reorderIndex >= 0)
 		{
+			_reorderFrame = ImGui.GetFrameCount();
 			if (!ImGui.IsMouseDown(ImGuiMouseButton.Left))
 			{
 				_reorderList = 0;
@@ -137,5 +146,6 @@ public static partial class M3Widgets
 	{
 		_reorderList = 0;
 		_reorderIndex = -1;
+		_reorderFrame = 0;
 	}
 }

@@ -3,7 +3,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace RebornMaterial;
 
-// Section puts a heading above the first item of each group in the drawer, and a divider in the rail.
 public readonly record struct M3NavItem(
 	string Id,
 	string Label,
@@ -119,7 +118,7 @@ public static class M3Navigation
 		var drawList = ImGui.GetWindowDrawList();
 		var rounding = height * 0.5f;
 
-		var selection = M3Motion.Approach($"nav_sel_{item.Id}", item.Selected ? 1f : 0f, M3Motion.EmphasisedDuration);
+		var selection = M3Motion.Approach(ImGui.GetID($"nav_sel_{item.Id}"), item.Selected ? 1f : 0f, M3Motion.EmphasisedDuration);
 
 		if (selection > 0.01f)
 		{
@@ -179,7 +178,7 @@ public static class M3Navigation
 		var held = ImGui.IsItemActive();
 		var min = ImGui.GetItemRectMin();
 		var drawList = ImGui.GetWindowDrawList();
-		var selection = M3Motion.Approach($"nav_sel_{item.Id}", item.Selected ? 1f : 0f, M3Motion.EmphasisedDuration);
+		var selection = M3Motion.Approach(ImGui.GetID($"nav_sel_{item.Id}"), item.Selected ? 1f : 0f, M3Motion.EmphasisedDuration);
 
 		var indicatorSize = new Vector2(MathF.Min(56f * scale, width - (4f * scale)), 32f * scale);
 		var indicatorMin = new Vector2(min.X + ((width - indicatorSize.X) * 0.5f), min.Y + (4f * scale));
@@ -237,7 +236,6 @@ public static class M3Navigation
 		return content + badge;
 	}
 
-	// When the labels won't fit in equal shares, the row scrolls instead of shortening them.
 	public static int Tabs(string id, ReadOnlySpan<M3Tab> tabs, int selectedIndex, bool secondary = false, float? width = null)
 	{
 		if (tabs.Length == 0)
@@ -266,7 +264,7 @@ public static class M3Navigation
 		using var idScope = ImRaii.PushId(id);
 		var key = ImGui.GetID("##strip");
 
-		Span<float> widths = tabs.Length <= 64 ? stackalloc float[tabs.Length] : new float[tabs.Length];
+		var widths = tabs.Length <= 64 ? stackalloc float[tabs.Length] : new float[tabs.Length];
 		var share = total / tabs.Length;
 		var scrolling = false;
 		for (var i = 0; i < tabs.Length; i++)
@@ -300,7 +298,7 @@ public static class M3Navigation
 		var viewLeft = origin.X + arrow;
 		var viewWidth = MathF.Max(1f, total - (arrow * 2f));
 
-		Span<float> lefts = tabs.Length <= 64 ? stackalloc float[tabs.Length] : new float[tabs.Length];
+		var lefts = tabs.Length <= 64 ? stackalloc float[tabs.Length] : new float[tabs.Length];
 		var contentWidth = 0f;
 		for (var i = 0; i < tabs.Length; i++)
 		{
@@ -421,7 +419,6 @@ public static class M3Navigation
 				M3Widgets.BadgeAt(new Vector2(labelPosition.X + labelSize.X + (4f * scale) + (badgeSize.X * 0.5f), labelPosition.Y + (badgeSize.Y * 0.5f)), tab.Badge);
 			}
 
-			// Kept relative to the start of the tabs, so the indicator doesn't trail behind while they scroll.
 			if (selected)
 			{
 				indicatorWidth = secondary ? tabWidth : MathF.Max(contentSpan, 24f * scale);

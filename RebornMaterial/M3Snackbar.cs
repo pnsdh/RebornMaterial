@@ -49,7 +49,6 @@ public static class M3Snackbar
 		}
 	}
 
-	// Call this last in the host window's Draw so it shows on top.
 	public static void Draw(Vector2 areaMin, Vector2 areaMax)
 	{
 		var entry = _current;
@@ -74,7 +73,8 @@ public static class M3Snackbar
 			_lastFrame = frame;
 			var delta = ImGui.GetIO().DeltaTime;
 			_age += delta;
-			if (!_hovered)
+
+			if (!_hovered || _remaining <= 0f)
 			{
 				_remaining -= delta;
 			}
@@ -98,6 +98,7 @@ public static class M3Snackbar
 		var maxWidth = MathF.Min(560f * scale, areaWidth - (margin * 2f));
 		if (maxWidth < 96f * scale)
 		{
+			_hovered = false;
 			return;
 		}
 
@@ -120,6 +121,7 @@ public static class M3Snackbar
 			ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoNav);
 		if (!child)
 		{
+			_hovered = false;
 			return;
 		}
 
@@ -144,7 +146,8 @@ public static class M3Snackbar
 		{
 			cursorX -= actionWidth;
 			ImGui.SetCursorScreenPos(new Vector2(cursorX, min.Y + ((height - M3Widgets.ButtonHeight) * 0.5f)));
-			if (ActionButton(entry.ActionLabel!, actionWidth))
+
+			if (ActionButton(entry.ActionLabel!, actionWidth) && _remaining > 0f)
 			{
 				entry.OnAction?.Invoke();
 				dismiss = true;

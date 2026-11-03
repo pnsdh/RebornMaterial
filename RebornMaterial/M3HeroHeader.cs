@@ -2,7 +2,6 @@ using Dalamud.Interface.Textures.TextureWraps;
 
 namespace RebornMaterial;
 
-// Holds its own stars: keep one per window and call Reset when it closes.
 public sealed class M3HeroHeader
 {
 	private const int StaticStarCount = 48;
@@ -154,7 +153,6 @@ public sealed class M3HeroHeader
 		var top = M3ColorMath.Mix(s.SurfaceContainerLowest, s.PrimaryContainer, 0.55f);
 		var bottom = M3ColorMath.Mix(s.Surface, s.PrimaryContainer, 0.28f);
 
-		// Multi-color rects can't be rounded, so a solid strip draws the rounded top corners.
 		if (rounding > 0f)
 		{
 			drawList.AddRectFilled(min, new Vector2(max.X, min.Y + (rounding * 2f)), M3.U32(top), rounding, ImDrawFlags.RoundCornersTop);
@@ -206,7 +204,9 @@ public sealed class M3HeroHeader
 
 	private void DrawParticles(ImDrawListPtr drawList, Vector2 origin, Vector2 size, M3Scheme s)
 	{
-		var delta = Math.Clamp(ImGui.GetIO().DeltaTime, 0f, 0.1f);
+		var motion = M3.MotionScale;
+		var still = motion <= 0f;
+		var delta = still ? 0f : MathF.Min(Math.Clamp(ImGui.GetIO().DeltaTime, 0f, 0.1f) / motion, 0.1f);
 		var scale = M3.Scale;
 
 		if (!_warm)
@@ -236,7 +236,7 @@ public sealed class M3HeroHeader
 			particle.Position += particle.Velocity * delta;
 			particle.Life -= delta;
 
-			if (particle.Life <= 0f || (particle.Kind == Kind.Shooting && OutOfBounds(particle.Position, size, 120f * scale)))
+			if (particle.Life <= 0f || (particle.Kind == Kind.Shooting && (still || OutOfBounds(particle.Position, size, 120f * scale))))
 			{
 				_particles.RemoveAt(i);
 				continue;

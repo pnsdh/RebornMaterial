@@ -29,7 +29,7 @@ public static partial class M3Widgets
 		{
 			M3Draw.Icon(drawList, FontAwesomeIcon.Search,
 				new Vector2(min.X + iconPadding, min.Y + ((height - iconSize.Y) * 0.5f)),
-				M3.Alpha(s.OnSurfaceVariant, 0.9f));
+				M3.Alpha(s.OnSurfaceVariant, enabled ? 0.9f : M3.DisabledContent));
 		}
 
 		var fieldStart = min.X + iconPadding + iconSize.X + (10f * scale);
@@ -84,13 +84,14 @@ public static partial class M3Widgets
 		var max = min + new Vector2(width, height);
 		var drawList = ImGui.GetWindowDrawList();
 		var hovered = M3Draw.MouseOver(min, max);
+		var dim = enabled ? 1f : M3.DisabledContent;
 
 		var textLeft = min.X + paddingX;
 		if (leadingIcon != FontAwesomeIcon.None)
 		{
 			var iconSize = M3Draw.MeasureIcon(leadingIcon);
 			M3Draw.Icon(drawList, leadingIcon, new Vector2(textLeft, min.Y + ((height - iconSize.Y) * 0.5f)),
-				error ? s.Error : s.OnSurfaceVariant);
+				M3.Alpha(error ? s.Error : s.OnSurfaceVariant, dim));
 			textLeft += iconSize.X + (12f * scale);
 		}
 
@@ -111,7 +112,6 @@ public static partial class M3Widgets
 		var focused = ImGui.IsItemActive();
 		var floating = M3Motion.Approach(ImGuiP.GetItemID(), focused || !string.IsNullOrEmpty(text) ? 1f : 0f, M3Motion.FastDuration);
 
-		var dim = enabled ? 1f : M3.DisabledContent;
 		var accent = M3.Alpha(error ? s.Error : focused ? s.Primary : hovered && enabled ? s.OnSurface : s.Outline, dim);
 		var labelColor = M3.Alpha(error ? s.Error : focused ? s.Primary : s.OnSurfaceVariant, dim);
 
@@ -135,7 +135,7 @@ public static partial class M3Widgets
 		{
 			var iconSize = M3Draw.MeasureIcon(FontAwesomeIcon.ExclamationCircle);
 			M3Draw.Icon(drawList, FontAwesomeIcon.ExclamationCircle,
-				new Vector2(max.X - paddingX - iconSize.X, min.Y + ((height - iconSize.Y) * 0.5f)), s.Error);
+				new Vector2(max.X - paddingX - iconSize.X, min.Y + ((height - iconSize.Y) * 0.5f)), M3.Alpha(s.Error, dim));
 		}
 
 		var bottom = max.Y;
@@ -143,7 +143,7 @@ public static partial class M3Widgets
 		{
 			using var font = ImRaii.PushFont(M3.LabelSmall);
 			bottom = M3Draw.WrappedText(supporting, new Vector2(min.X + paddingX, max.Y + (4f * scale)),
-				MathF.Max(32f * scale, width - (paddingX * 2f)), error ? s.Error : M3.Alpha(s.OnSurfaceVariant, 0.9f));
+				MathF.Max(32f * scale, width - (paddingX * 2f)), error ? M3.Alpha(s.Error, dim) : M3.Alpha(s.OnSurfaceVariant, 0.9f * dim));
 		}
 
 		ImGui.SetCursorScreenPos(new Vector2(origin.X, bottom));

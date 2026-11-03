@@ -8,7 +8,6 @@ public readonly record struct M3DialogAction(
 	FontAwesomeIcon Icon = FontAwesomeIcon.None,
 	bool Enabled = true);
 
-// Call Open once, then Begin every frame from the same ID scope.
 public static class M3Dialog
 {
 	private const ImGuiWindowFlags Flags = ImGuiWindowFlags.AlwaysAutoResize
@@ -39,7 +38,8 @@ public static class M3Dialog
 			return default;
 		}
 
-		if (dismissible && ImGui.IsKeyPressed(ImGuiKey.Escape) && !ImGui.IsAnyItemActive())
+		if (dismissible && ImGui.IsKeyPressed(ImGuiKey.Escape) && !ImGui.IsAnyItemActive()
+			&& ImGui.IsWindowFocused(ImGuiFocusedFlags.ChildWindows | ImGuiFocusedFlags.NoPopupHierarchy))
 		{
 			ImGui.CloseCurrentPopup();
 		}
@@ -104,7 +104,10 @@ public static class M3Dialog
 			}
 
 			var action = actions[i];
-			if (M3Widgets.Button($"##dialog_action_{i}", action.Label, action.Style, action.Icon, enabled: action.Enabled))
+			ImGui.PushID(i);
+			var clicked = M3Widgets.Button("##dialog_action", action.Label, action.Style, action.Icon, enabled: action.Enabled);
+			ImGui.PopID();
+			if (clicked)
 			{
 				pressed = i;
 			}

@@ -16,10 +16,11 @@ The whole colour scheme is generated from one accent colour, and every metric fo
 
 | Type | What it draws |
 | --- | --- |
-| `M3` | Scheme, shapes, spacing, fonts, scale, and the colour helpers (`Alpha`, `StateLayer`, `ContentOn`, `Severity`, `Harmonize`, `CustomColor`, `AccentFor`) |
+| `M3` | Scheme, shapes, spacing, fonts, scale, motion, and the colour helpers (`Alpha`, `StateLayer`, `ContentOn`, `Severity`, `OnSeverity`, `OnSeverityContainer`, `Harmonize`, `CustomColor`, `AccentFor`) |
+| `M3Scheme`, `M3ColorMath` | Every Material color role, including the on-colours for secondary, tertiary, warning, success and info, plus `ToHex` and `TryParseHex` for `#RGB` to `#RRGGBBAA` |
 | `M3Style` | Pushes the scheme onto ImGui's own style for a whole window, at a Comfortable, Compact or Tight density |
-| `M3Widgets` | Buttons (with accent colours, game icons, and hold to confirm), icon buttons and toggles, switches, checkboxes (bare, labelled, or mixed), radios, segmented buttons, chips, pills, badges, sliders (including logarithmic), progress bars and spinners, text, search and number fields, hotkey fields, combos (with search and enums), menu items, help markers, reorder lists, banners, empty states, colour swatches, dividers, and the window title-bar actions |
-| `M3Widgets.Row*` | A label and description with one control: switch, slider, number, combo, segmented buttons, colour, text or hotkey |
+| `M3Widgets` | Buttons (with accent colors, game icons, and hold to confirm), copy buttons, icon buttons and toggles, switches, checkboxes (bare, labelled, or mixed), radios, segmented buttons, chips, pills, badges, sliders (including logarithmic and two-thumb range sliders), progress bars and spinners, text, search and number fields, hotkey fields, combos (with search and enums), menu items, help markers, reorder lists, banners, empty states, colour swatches, preset colour choices, dividers, and the window title-bar actions |
+| `M3Widgets.Row*` | A label and description with one control: switch, slider, range, number, combo, segmented buttons, colour, colour choices, text (or password), hotkey, button, hold button, icon button, copy, or a read-only value |
 | `M3Card`, `M3ExpandableCard` | Filled, outlined and elevated cards, which can also collapse |
 | `M3SettingRow`, `M3SubGroup` | Label and description on the left, control on the right. Wraps to two lines when narrow |
 | `M3Navigation` | Navigation drawer and rail with section headings, and primary and secondary tabs that scroll when they don't fit |
@@ -36,7 +37,7 @@ The whole colour scheme is generated from one accent colour, and every metric fo
 | `M3HeroHeader` | Window header with an image, or a gradient with animated stars |
 | `M3TopAppBar` | A page title and subtitle for a window without a title bar, with room for its action pill |
 | `M3WindowFold` | Minimises a window down to its title-bar actions, with animation, from a button or from code. Its contents fade and keep their layout while it folds |
-| `M3Draw`, `M3Motion` | Drawing primitives (arcs, shadows, gradients, window backdrops, icons, focus rings) and per-widget easing |
+| `M3Draw`, `M3Motion` | Drawing primitives (arcs, shadows, gradients, window backdrops, icons, focus rings), per-widget easing, and `M3Motion.Step` for values you keep yourself. All of it follows the animation length setting |
 | `M3Gallery` | A showcase of everything above, for a debug tab |
 
 ## Setup
@@ -88,10 +89,13 @@ public class Configuration : IPluginConfiguration, IM3Settings
 
     // Optional. Scales the space around and between things; controls and text keep their size.
     public float UiPaddingScale { get; set; } = 1f;
+
+    // Optional. Adjusts the duration of animations; 0 turns them off.
+    public float UiMotionScale { get; set; } = 1f;
 }
 ```
 
-`UiPaddingScale` has a default of 1, so settings without it still compile. If the settings live somewhere the library can't reference, write a small adapter that forwards to them. Pass nothing to use a plain `M3Settings`, which you can change through `M3.Settings`.
+`UiPaddingScale` and `UiMotionScale` default to 1, so settings without them still compile. If the settings live somewhere the library can't reference, write a small adapter that forwards to them. Pass nothing to use a plain `M3Settings`, which you can change through `M3.Settings`.
 
 ### Tooltips
 

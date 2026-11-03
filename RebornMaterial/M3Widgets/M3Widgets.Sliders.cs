@@ -4,6 +4,10 @@ namespace RebornMaterial;
 
 public static partial class M3Widgets
 {
+	private static float SliderHandleRadius => 10f * M3.Scale;
+
+	private static float SliderGrabSize => MathF.Max(0f, (SliderHandleRadius * 2f) - 4f);
+
 	private static ImRaii.ColorDisposable PushInvisibleSliderChrome(bool condition)
 	{
 		return ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0f, 0f, 0f, 0f), condition)
@@ -34,7 +38,8 @@ public static partial class M3Widgets
 
 		using (ImRaii.Disabled(!enabled))
 		using (PushInvisibleSliderChrome(!editing))
-		using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(editing ? 8f : 0f, 10f) * scale))
+		using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(editing ? 8f : 0f, 10f) * scale)
+			.Push(ImGuiStyleVar.GrabMinSize, SliderGrabSize))
 		{
 			ImGui.SetNextItemWidth(width);
 			changed = ImGui.SliderFloat(id, ref value, min, max, "%.2f", flags);
@@ -53,7 +58,7 @@ public static partial class M3Widgets
 			changed = value != before;
 		}
 
-		DrawSliderVisual(value, min, max, displayValue ?? FormatValue(format ?? string.Empty, value), M3.Scheme, scale, editing, logarithmic ? 0.01f : 0f, enabled);
+		DrawSliderVisual(value, min, max, displayValue ?? FormatValue(format ?? string.Empty, value), M3.Scheme, scale, editing, logarithmic ? 0.01f : 0f, enabled, -1f);
 		return changed;
 	}
 
@@ -67,7 +72,8 @@ public static partial class M3Widgets
 
 		using (ImRaii.Disabled(!enabled))
 		using (PushInvisibleSliderChrome(!editing))
-		using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(editing ? 8f : 0f, 10f) * scale))
+		using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(editing ? 8f : 0f, 10f) * scale)
+			.Push(ImGuiStyleVar.GrabMinSize, SliderGrabSize))
 		{
 			ImGui.SetNextItemWidth(width);
 			changed = ImGui.SliderInt(id, ref value, min, max, "%d", flags);
@@ -85,7 +91,7 @@ public static partial class M3Widgets
 			changed = value != before;
 		}
 
-		DrawSliderVisual(value, min, max, displayValue ?? value.ToString(), M3.Scheme, scale, editing, logarithmic ? 0.1f : 0f, enabled);
+		DrawSliderVisual(value, min, max, displayValue ?? value.ToString(), M3.Scheme, scale, editing, logarithmic ? 0.1f : 0f, enabled, MathF.Abs((float)max - min));
 		return changed;
 	}
 
@@ -156,7 +162,7 @@ public static partial class M3Widgets
 		return flipped ? 1f - result : result;
 	}
 
-	private static void DrawSliderVisual(float value, float min, float max, string displayValue, M3Scheme s, float scale, bool editing, float logEpsilon, bool enabled)
+	private static void DrawSliderVisual(float value, float min, float max, string displayValue, M3Scheme s, float scale, bool editing, float logEpsilon, bool enabled, float intRange)
 	{
 		var itemMin = ImGui.GetItemRectMin();
 		var itemMax = ImGui.GetItemRectMax();
@@ -180,12 +186,21 @@ public static partial class M3Widgets
 		var active = enabled && ImGui.IsItemActive();
 
 		var trackHeight = 4f * scale;
-		var handleRadius = 10f * scale;
-		var trackLeft = itemMin.X + handleRadius;
-		var trackRight = itemMax.X - handleRadius;
+		var handleRadius = SliderHandleRadius;
+
+		var sliderSize = itemMax.X - itemMin.X - 4f;
+		var grabSize = SliderGrabSize;
+		if (intRange >= 0f)
+		{
+			grabSize = MathF.Max(sliderSize / (intRange + 1f), grabSize);
+		}
+
+		grabSize = MathF.Max(0f, MathF.Min(grabSize, sliderSize));
+		var trackLeft = itemMin.X + 2f + (grabSize * 0.5f);
+		var trackRight = itemMax.X - 2f - (grabSize * 0.5f);
 		var fraction = logEpsilon > 0f
 			? LogFraction(value, min, max, logEpsilon, trackRight - trackLeft)
-			: max > min ? Math.Clamp((value - min) / (max - min), 0f, 1f) : 0f;
+			: max != min ? Math.Clamp((value - min) / (max - min), 0f, 1f) : 0f;
 		var handleX = float.Lerp(trackLeft, trackRight, fraction);
 		var accent = enabled ? s.Primary : M3.Alpha(s.OnSurface, M3.DisabledContent);
 

@@ -1,6 +1,7 @@
+using System.Globalization;
+
 namespace RebornMaterial;
 
-// Uses CIE LCh instead of Material's HCT to avoid a color library. Close enough for UI.
 public sealed class TonalPalette(float hue, float chroma)
 {
 	private readonly Dictionary<int, Vector4> _cache = [];
@@ -61,7 +62,6 @@ public sealed class CorePalette
 			error: new TonalPalette(ResolveErrorHue(hue), 84f));
 	}
 
-	// Moves the error hue away from a red accent so errors stay easy to tell apart.
 	private static float ResolveErrorHue(float seedHue)
 	{
 		var separation = MathF.Abs(M3ColorMath.WrapHue(BaseErrorHue - seedHue + 180f) - 180f);
@@ -94,10 +94,12 @@ public sealed class M3Scheme
 		InversePrimary = p[40];
 
 		Secondary = s[80];
+		OnSecondary = s[20];
 		SecondaryContainer = s[30];
 		OnSecondaryContainer = s[90];
 
 		Tertiary = t[80];
+		OnTertiary = t[20];
 		TertiaryContainer = t[30];
 		OnTertiaryContainer = t[90];
 
@@ -107,6 +109,8 @@ public sealed class M3Scheme
 		OnErrorContainer = e[90];
 
 		Surface = n[6];
+		SurfaceDim = n[6];
+		SurfaceBright = n[24];
 		OnSurface = n[90];
 		SurfaceContainerLowest = n[4];
 		SurfaceContainerLow = n[10];
@@ -123,10 +127,17 @@ public sealed class M3Scheme
 		Shadow = n[0];
 
 		Warning = _warningPalette[80];
+		OnWarning = _warningPalette[20];
 		WarningContainer = _warningPalette[30];
+		OnWarningContainer = _warningPalette[90];
 		Success = _successPalette[80];
+		OnSuccess = _successPalette[20];
 		SuccessContainer = _successPalette[30];
+		OnSuccessContainer = _successPalette[90];
 		Info = _infoPalette[80];
+		OnInfo = _infoPalette[20];
+		InfoContainer = _infoPalette[30];
+		OnInfoContainer = _infoPalette[90];
 	}
 
 	public Vector4 Primary { get; }
@@ -138,10 +149,12 @@ public sealed class M3Scheme
 	public Vector4 InversePrimary { get; }
 
 	public Vector4 Secondary { get; }
+	public Vector4 OnSecondary { get; }
 	public Vector4 SecondaryContainer { get; }
 	public Vector4 OnSecondaryContainer { get; }
 
 	public Vector4 Tertiary { get; }
+	public Vector4 OnTertiary { get; }
 	public Vector4 TertiaryContainer { get; }
 	public Vector4 OnTertiaryContainer { get; }
 
@@ -151,6 +164,8 @@ public sealed class M3Scheme
 	public Vector4 OnErrorContainer { get; }
 
 	public Vector4 Surface { get; }
+	public Vector4 SurfaceDim { get; }
+	public Vector4 SurfaceBright { get; }
 	public Vector4 OnSurface { get; }
 	public Vector4 SurfaceContainerLowest { get; }
 	public Vector4 SurfaceContainerLow { get; }
@@ -167,10 +182,17 @@ public sealed class M3Scheme
 	public Vector4 Shadow { get; }
 
 	public Vector4 Warning { get; }
+	public Vector4 OnWarning { get; }
 	public Vector4 WarningContainer { get; }
+	public Vector4 OnWarningContainer { get; }
 	public Vector4 Success { get; }
+	public Vector4 OnSuccess { get; }
 	public Vector4 SuccessContainer { get; }
+	public Vector4 OnSuccessContainer { get; }
 	public Vector4 Info { get; }
+	public Vector4 OnInfo { get; }
+	public Vector4 InfoContainer { get; }
+	public Vector4 OnInfoContainer { get; }
 
 	public static M3Scheme FromSeed(Vector4 seed)
 	{
@@ -199,6 +221,48 @@ public static class M3ColorMath
 			((rgb >> 8) & 0xFF) / 255f,
 			(rgb & 0xFF) / 255f,
 			1f);
+	}
+
+	public static string ToHex(Vector4 color, bool alpha = false)
+	{
+		static int Channel(float value)
+		{
+			return (int)MathF.Round(Math.Clamp(value, 0f, 1f) * 255f);
+		}
+
+		return alpha
+			? $"#{Channel(color.X):X2}{Channel(color.Y):X2}{Channel(color.Z):X2}{Channel(color.W):X2}"
+			: $"#{Channel(color.X):X2}{Channel(color.Y):X2}{Channel(color.Z):X2}";
+	}
+
+	public static bool TryParseHex(ReadOnlySpan<char> text, out Vector4 color)
+	{
+		color = default;
+		text = text.Trim();
+		if (!text.IsEmpty && text[0] == '#')
+		{
+			text = text[1..];
+		}
+		else if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+		{
+			text = text[2..];
+		}
+
+		if (text.Length is not (3 or 4 or 6 or 8) || !uint.TryParse(text, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value))
+		{
+			return false;
+		}
+
+		var (r, g, b, a) = text.Length switch
+		{
+			3 => (((value >> 8) & 0xF) * 17, ((value >> 4) & 0xF) * 17, (value & 0xF) * 17, 255u),
+			4 => (((value >> 12) & 0xF) * 17, ((value >> 8) & 0xF) * 17, ((value >> 4) & 0xF) * 17, (value & 0xF) * 17),
+			6 => ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF, 255u),
+			_ => ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF),
+		};
+
+		color = new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+		return true;
 	}
 
 	public static void ToLch(Vector4 color, out float lightness, out float chroma, out float hue)
@@ -242,7 +306,6 @@ public static class M3ColorMath
 		var high = chroma;
 		var best = FromLab(lightness, 0f, 0f);
 
-		// 12 steps is accurate to well under one 8-bit color step.
 		for (var i = 0; i < 12; i++)
 		{
 			var mid = (low + high) * 0.5f;

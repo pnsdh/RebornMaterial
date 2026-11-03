@@ -6,16 +6,13 @@ public enum M3Density
 
 	Compact,
 
-	// Compact spacing, plus thin window edges and the tighter card, row and drawer padding from M3Style.Spacing.
 	Tight,
 }
 
 public static class M3Style
 {
-	/// <summary>The density of the innermost <see cref="Push"/>. Shared components read it to pick their padding.</summary>
 	public static M3Density Density { get; private set; }
 
-	// Scaled padding for shared components, which pull in only inside a Tight window so the other windows keep their look.
 	public static float Spacing(float regular, float tight)
 	{
 		return (Density == M3Density.Tight ? tight : regular) * M3.PaddingScale;
@@ -121,7 +118,7 @@ public static class M3Style
 			M3Density.Compact => new Vector2(10f, 8f),
 			_ => new Vector2(16f, 14f),
 		} * padding);
-		// Frame padding sets the height of inputs and combos, so it follows the element size, not the padding setting.
+
 		Vec(ImGuiStyleVar.FramePadding, (compact ? new Vector2(6f, 3f) : new Vector2(10f, 6f)) * scale);
 		Vec(ImGuiStyleVar.CellPadding, (compact ? new Vector2(4f, 2f) : new Vector2(8f, 6f)) * padding);
 		Vec(ImGuiStyleVar.ItemSpacing, (compact ? new Vector2(5f, 4f) : new Vector2(8f, 8f)) * padding);
@@ -154,7 +151,6 @@ public static class M3Style
 	{
 		public void Dispose()
 		{
-			// A default scope pushed nothing, so leave the density alone.
 			if (colors > 0)
 			{
 				Density = previous;

@@ -126,22 +126,23 @@ public static partial class M3Widgets
 
 	public static float LabeledCheckboxWidth(string label)
 	{
-		return LabeledCheckboxWidthOf(SplitLabel(label).Label);
+		return LabeledCheckboxWidthOf(ImGui.CalcTextSize(SplitLabelSpan(label, out _)).X);
 	}
 
-	private static float LabeledCheckboxWidthOf(string display)
+	private static float LabeledCheckboxWidthOf(float textWidth)
 	{
 		var scale = M3.Scale;
-		return CheckboxSize().X + (12f * scale) + ImGui.CalcTextSize(display).X + (8f * scale);
+		return CheckboxSize().X + (12f * scale) + textWidth + (8f * scale);
 	}
 
 	public static bool LabeledCheckbox(string label, ref bool value, bool enabled = true, bool mixed = false, string? tooltip = null)
 	{
 		var s = M3.Scheme;
 		var scale = M3.Scale;
-		var (display, id) = SplitLabel(label);
+		var display = SplitLabelSpan(label, out var id);
 		var hit = CheckboxHitSize();
-		var size = new Vector2(LabeledCheckboxWidthOf(display), MathF.Max(hit.Y, ImGui.GetFrameHeight()));
+		var textSize = ImGui.CalcTextSize(display);
+		var size = new Vector2(LabeledCheckboxWidthOf(textSize.X), MathF.Max(hit.Y, ImGui.GetFrameHeight()));
 
 		var changed = false;
 		if (ImGui.InvisibleButton(id, size) && enabled)
@@ -157,7 +158,6 @@ public static partial class M3Widgets
 		var drawList = ImGui.GetWindowDrawList();
 		DrawCheckbox(drawList, new Vector2(min.X + (hit.X * 0.5f), min.Y + (size.Y * 0.5f)), ImGuiP.GetItemID(), value, mixed, hovered, held, enabled);
 
-		var textSize = ImGui.CalcTextSize(display);
 		drawList.AddText(new Vector2(min.X + hit.X + (4f * scale), min.Y + ((size.Y - textSize.Y) * 0.5f)),
 			M3.U32(s.OnSurface, enabled ? 0.95f : M3.DisabledContent), display);
 		M3Draw.FocusRing(min, min + size, M3.ShapeSmall);

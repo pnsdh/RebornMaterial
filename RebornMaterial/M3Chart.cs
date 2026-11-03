@@ -4,12 +4,12 @@ namespace RebornMaterial;
 
 public readonly record struct M3ChartSeries(string Name, IReadOnlyList<float> Values);
 
-// Series take the palette's colours in order. There are eight, and they never repeat: fold extra series into an "Other" series.
 public static class M3Chart
 {
 	public const int MaxSeries = 8;
+	private const int MaxTicks = 16;
+	private static readonly string[] _tickLabels = new string[MaxTicks];
 
-	// Checked for colour-blind separation and contrast against this library's surfaces, from the window background up to standard containers.
 	public static readonly Vector4[] Palette =
 	[
 		M3ColorMath.FromRgb(0x3987E5),
@@ -27,7 +27,6 @@ public static class M3Chart
 		return Palette[index];
 	}
 
-	// Stacked puts each category's series on top of each other; otherwise they stand side by side. Values below zero draw as zero.
 	public static void Bars(string id, IReadOnlyList<string> categories, IReadOnlyList<M3ChartSeries> series, Vector2 size, bool stacked = true,
 		Func<float, string>? format = null, string? yTitle = null, string? xTitle = null)
 	{
@@ -38,9 +37,9 @@ public static class M3Chart
 		for (var c = 0; c < categories.Count; c++)
 		{
 			var sum = 0f;
-			foreach (var item in series)
+			for (var i = 0; i < series.Count; i++)
 			{
-				var value = ValueAt(item, c);
+				var value = ValueAt(series[i], c);
 				sum = stacked ? sum + value : MathF.Max(sum, value);
 			}
 
@@ -104,8 +103,9 @@ public static class M3Chart
 			}
 			else
 			{
-				var groupWidth = MathF.Min(slot * 0.8f, (series.Count * 24f * scale) + ((series.Count - 1) * gap));
-				var barWidth = (groupWidth - ((series.Count - 1) * gap)) / series.Count;
+				var barGap = series.Count > 1 ? MathF.Min(gap, slot * 0.2f / (series.Count - 1)) : 0f;
+				var groupWidth = MathF.Min(slot * 0.8f, (series.Count * 24f * scale) + ((series.Count - 1) * barGap));
+				var barWidth = (groupWidth - ((series.Count - 1) * barGap)) / series.Count;
 				var left = center - (groupWidth * 0.5f);
 				for (var i = 0; i < series.Count; i++)
 				{
@@ -115,7 +115,7 @@ public static class M3Chart
 						DrawBar(drawList, left, barWidth, layout.Plot.Bottom - height, layout.Plot.Bottom, Palette[i], rounding);
 					}
 
-					left += barWidth + gap;
+					left += barWidth + barGap;
 				}
 			}
 		}
@@ -136,10 +136,12 @@ public static class M3Chart
 
 		var low = 0f;
 		var high = 0f;
-		foreach (var item in series)
+		for (var i = 0; i < series.Count; i++)
 		{
-			foreach (var value in item.Values)
+			var values = series[i].Values;
+			for (var p = 0; p < values.Count; p++)
 			{
+				var value = values[p];
 				if (!float.IsNaN(value))
 				{
 					low = MathF.Min(low, value);
@@ -226,9 +228,9 @@ public static class M3Chart
 		}
 
 		ImGui.TableSetupColumn(categoryTitle ?? string.Empty);
-		foreach (var item in series)
+		for (var i = 0; i < series.Count; i++)
 		{
-			ImGui.TableSetupColumn(item.Name);
+			ImGui.TableSetupColumn(series[i].Name);
 		}
 
 		ImGui.TableHeadersRow();
@@ -237,10 +239,11 @@ public static class M3Chart
 			ImGui.TableNextRow();
 			ImGui.TableNextColumn();
 			ImGui.TextUnformatted(categories[c]);
-			foreach (var item in series)
+			for (var i = 0; i < series.Count; i++)
 			{
+				var values = series[i].Values;
 				ImGui.TableNextColumn();
-				var value = c < item.Values.Count ? item.Values[c] : float.NaN;
+				var value = c < values.Count ? values[c] : float.NaN;
 				var text = float.IsNaN(value) ? "-" : format(value);
 				ImGui.SetCursorPosX(ImGui.GetCursorPosX() + MathF.Max(0f, ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X));
 				ImGui.TextUnformatted(text);
@@ -330,21 +333,27 @@ public static class M3Chart
 			top = bottom + step;
 		}
 
+		Span<float> tickValues = stackalloc float[MaxTicks];
+		var tickCount = 0;
 		var labelWidth = 0f;
-		for (var tick = bottom; tick <= top + (step * 0.5f); tick += step)
+		for (var tick = bottom; tick <= top + (step * 0.5f) && tickCount < MaxTicks; tick += step)
 		{
-			labelWidth = MathF.Max(labelWidth, ImGui.CalcTextSize(format(tick)).X);
+			var text = format(tick);
+			_tickLabels[tickCount] = text;
+			tickValues[tickCount++] = tick;
+			labelWidth = MathF.Max(labelWidth, ImGui.CalcTextSize(text).X);
 		}
 
 		var plot = new PlotRect(min.X + labelWidth + (8f * scale), plotTop, min.X + width - (4f * scale), plotBottom);
 
-		for (var tick = bottom; tick <= top + (step * 0.5f); tick += step)
+		for (var n = 0; n < tickCount; n++)
 		{
+			var tick = tickValues[n];
 			var tickY = plot.Bottom - ((tick - bottom) / (top - bottom) * plot.Height);
 			var isZero = MathF.Abs(tick) < step * 0.001f;
 			drawList.AddLine(new Vector2(plot.Left, tickY), new Vector2(plot.Right, tickY),
 				M3.U32(isZero ? s.Outline : s.OutlineVariant, isZero ? 0.8f : 0.5f), 1f * scale);
-			var text = format(tick);
+			var text = _tickLabels[n];
 			var textSize = ImGui.CalcTextSize(text);
 			drawList.AddText(new Vector2(plot.Left - (8f * scale) - textSize.X, tickY - (textSize.Y * 0.5f)), M3.U32(s.OnSurfaceVariant), text);
 		}
@@ -362,7 +371,7 @@ public static class M3Chart
 		_ = ImGui.InvisibleButton(id, new Vector2(MathF.Max(1f, plot.Width), MathF.Max(1f, plot.Height)));
 		var hovered = ImGui.IsItemHovered();
 
-		return new ChartLayout(min, new Vector2(width, height), plot, bottom, top, hovered);
+		return new ChartLayout(min, new Vector2(width, MathF.Max(height, plotBottom + bottomRoom - min.Y)), plot, bottom, top, hovered);
 	}
 
 	private static void EndChart(in ChartLayout layout)
@@ -380,9 +389,9 @@ public static class M3Chart
 		}
 
 		var widest = 0f;
-		foreach (var label in labels)
+		for (var i = 0; i < count; i++)
 		{
-			widest = MathF.Max(widest, ImGui.CalcTextSize(label).X);
+			widest = MathF.Max(widest, ImGui.CalcTextSize(labels[i]).X);
 		}
 
 		var spacing = lines && count > 1 ? plot.Width / (count - 1) : plot.Width / count;
@@ -394,7 +403,7 @@ public static class M3Chart
 				? count == 1 ? plot.Left + (plot.Width * 0.5f) : plot.Left + (spacing * i)
 				: plot.Left + (spacing * (i + 0.5f));
 			var size = ImGui.CalcTextSize(labels[i]);
-			var left = Math.Clamp(x - (size.X * 0.5f), plot.Left - (size.X * 0.5f), plot.Right - size.X);
+			var left = MathF.Max(plot.Left - (size.X * 0.5f), MathF.Min(x - (size.X * 0.5f), plot.Right - size.X));
 			drawList.AddText(new Vector2(left, plot.Bottom + (4f * scale)), M3.U32(s.OnSurfaceVariant), labels[i]);
 		}
 	}
@@ -437,7 +446,7 @@ public static class M3Chart
 
 	private static void Readout(string heading, IReadOnlyList<M3ChartSeries> series, int index, Func<float, string> format, bool lines)
 	{
-		var s = M3.Scheme;
+		_ = M3.Scheme;
 		var scale = M3.Scale;
 		using var tooltip = ImRaii.Tooltip();
 		M3Text.Draw(heading, M3TextStyle.Label);

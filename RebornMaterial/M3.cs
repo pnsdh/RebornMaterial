@@ -20,6 +20,8 @@ public static class M3
 
 	private static float _paddingScale = 1f;
 
+	private static float _motionScale = 1f;
+
 	private const int MaxCustomColors = 128;
 	private static readonly Dictionary<(Vector4 Color, bool Harmonize), M3ColorRoles> _customColors = [];
 	private static M3Scheme? _customColorScheme;
@@ -79,9 +81,16 @@ public static class M3
 		_textScale = Math.Clamp(Settings.UiTextScale, 0.5f, 3f);
 		_elementScale = ElementBaseline * Math.Clamp(Settings.UiElementScale, 0.5f, 2.5f);
 		_paddingScale = Math.Clamp(Settings.UiPaddingScale, 0f, 3f);
+
+		var motion = Settings.UiMotionScale;
+		_motionScale = float.IsFinite(motion) ? Math.Clamp(motion, 0f, 3f) : 1f;
 	}
 
 	public static float TextScale => _textScale * _windowScale;
+
+	public static float MotionScale => _motionScale;
+
+	public static bool ReducedMotion => _motionScale <= 0f;
 
 	public static WindowScaleScope PushWindowScale(float scale)
 	{
@@ -257,6 +266,32 @@ public static class M3
 			M3Severity.Success => scheme.SuccessContainer,
 			M3Severity.Info => scheme.SecondaryContainer,
 			_ => scheme.PrimaryContainer,
+		};
+	}
+
+	public static Vector4 OnSeverity(M3Severity severity)
+	{
+		var scheme = Scheme;
+		return severity switch
+		{
+			M3Severity.Error => scheme.OnError,
+			M3Severity.Warning => scheme.OnWarning,
+			M3Severity.Success => scheme.OnSuccess,
+			M3Severity.Info => scheme.OnInfo,
+			_ => scheme.OnPrimary,
+		};
+	}
+
+	public static Vector4 OnSeverityContainer(M3Severity severity)
+	{
+		var scheme = Scheme;
+		return severity switch
+		{
+			M3Severity.Error => scheme.OnErrorContainer,
+			M3Severity.Warning => scheme.OnWarningContainer,
+			M3Severity.Success => scheme.OnSuccessContainer,
+			M3Severity.Info => scheme.OnSecondaryContainer,
+			_ => scheme.OnPrimaryContainer,
 		};
 	}
 

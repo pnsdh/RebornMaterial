@@ -3,7 +3,6 @@ using Dalamud.Interface.Textures.TextureWraps;
 
 namespace RebornMaterial;
 
-// Recast state for the cooldown overlay, in seconds. Elapsed counts up towards RecastTime, the time for one charge.
 public readonly record struct M3Cooldown(bool IsCoolingDown, float RecastTime, float Elapsed, int CurrentCharges = 0, int MaxCharges = 0);
 
 public static class M3ActionIcon
@@ -13,24 +12,22 @@ public static class M3ActionIcon
 		return MathF.Min(M3.ShapeSmall, size * 0.18f);
 	}
 
-	// A game icon by ID, such as an action's Icon column.
 	public static bool Draw(string id, uint iconId, float size, M3Cooldown? cooldown = null, bool enabled = true, string? tooltip = null)
 	{
 		return Draw(id, GameIcon(iconId), size, cooldown, enabled, tooltip);
 	}
 
-	// A null texture draws an empty slot, which never reports a press.
 	public static bool Draw(string id, IDalamudTextureWrap? texture, float size, M3Cooldown? cooldown = null, bool enabled = true, string? tooltip = null)
 	{
 		var s = M3.Scheme;
 
-		// Size settings can go to 0, which InvisibleButton rejects.
 		size = MathF.Max(size, 1f);
 		var extent = new Vector2(size, size);
 
-		var pressed = ImGui.InvisibleButton(id, extent);
-		var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
-		var held = ImGui.IsItemActive();
+		var pressed = ImGui.InvisibleButton(id, extent) && enabled;
+		var mouseOver = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
+		var hovered = enabled && mouseOver;
+		var held = enabled && ImGui.IsItemActive();
 		var min = ImGui.GetItemRectMin();
 		var max = min + extent;
 		var drawList = ImGui.GetWindowDrawList();
@@ -55,7 +52,7 @@ public static class M3ActionIcon
 			ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
 		}
 
-		if (hovered)
+		if (mouseOver)
 		{
 			M3Tooltip.Show(tooltip);
 		}
@@ -63,7 +60,6 @@ public static class M3ActionIcon
 		return pressed;
 	}
 
-	// Null while the icon loads, or when it doesn't exist.
 	public static IDalamudTextureWrap? GameIcon(uint iconId, bool highResolution = true)
 	{
 		if (iconId == 0 || !M3Services.TextureProvider.TryGetFromGameIcon(new GameIconLookup(iconId, false, highResolution), out var icon))

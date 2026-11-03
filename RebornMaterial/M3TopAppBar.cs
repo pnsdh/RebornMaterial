@@ -2,10 +2,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace RebornMaterial;
 
-// A page's title and subtitle at the top of a window drawn without a title bar. It leaves room on the right for the
-// window's action pill, and a trailing slot left of the pill for a control such as a clear search button.
-// Pass ShownActions and BarTop on to the window's M3WindowFold, so the pill lines up with the bar on the next frame.
-// minimumActions stay in the pill however narrow the bar gets, for an action the window can't lose, like an unlock button.
 public static class M3TopAppBar
 {
 	public static Scope Begin(string title, string? subtitle, int actionCount, in M3WindowBrand brand, float trailingWidth = 0f, float? gap = null, int minimumActions = 0)
@@ -14,7 +10,6 @@ public static class M3TopAppBar
 		var scale = M3.Scale;
 		var width = MathF.Max(64f * scale, ImGui.GetContentRegionAvail().X);
 
-		// Actions drop from the pill until the title has room.
 		var shown = M3Widgets.WindowActionsThatFit(actionCount, brand, width - trailingWidth - (96f * scale), minimumActions);
 		var barSize = M3Widgets.WindowActionsSize(shown, brand, 0f);
 		var textWidth = MathF.Max(32f * scale, width - barSize.X - trailingWidth - (12f * scale));
@@ -40,7 +35,6 @@ public static class M3TopAppBar
 
 		var contentHeight = titleSize.Y + (subtitleSize.Y > 0f ? lineGap + subtitleSize.Y : 0f);
 
-		// Tall enough for the action pill to clear the divider under the bar.
 		var height = MathF.Max(barSize.Y + (4f * scale), (padding * 2f) + contentHeight);
 
 		ImGui.Dummy(new Vector2(width, height));
@@ -69,13 +63,10 @@ public static class M3TopAppBar
 
 		public Vector2 Max => max;
 
-		// How many of the window's actions fit beside the title.
 		public int ShownActions => shownActions;
 
-		// How far down the bar the pill sits, for M3WindowFold.BarTop. It assumes the bar is the first thing in the window's content.
 		public float BarTop => barTop;
 
-		// Where to put a control of the given height in the trailing slot, centred on the bar.
 		public Vector2 TrailingPosition(float itemHeight)
 		{
 			return new Vector2(trailingX, min.Y + ((max.Y - min.Y - itemHeight) * 0.5f));

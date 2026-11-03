@@ -46,7 +46,7 @@ public static partial class M3Widgets
 
 		if (changed)
 		{
-			value = Math.Clamp(value, min, max);
+			value = Math.Clamp(value, MathF.Min(min, max), MathF.Max(min, max));
 		}
 
 		return changed;
@@ -73,7 +73,7 @@ public static partial class M3Widgets
 
 		if (changed)
 		{
-			value = Math.Clamp(value, min, max);
+			value = Math.Clamp(value, Math.Min(min, max), Math.Max(min, max));
 		}
 
 		return changed;

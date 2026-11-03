@@ -27,6 +27,8 @@ public static partial class M3Widgets
 	private static int _listeningFrame;
 	private static ImGuiKey[]? _hotkeyCandidates;
 
+	private static readonly Dictionary<M3Hotkey, string> _hotkeyLabels = [];
+
 	public static float HotkeyFieldHeight => ComboHeight;
 
 	public static bool HotkeyField(string id, ref M3Hotkey hotkey, float width, bool modifiers = true, bool enabled = true, string? tooltip = null)
@@ -47,9 +49,9 @@ public static partial class M3Widgets
 			_listeningFrame = frame;
 		}
 
-		var clearWidth = hotkey.IsEmpty || listening ? 0f : height;
+		var clearWidth = hotkey.IsEmpty || listening || width < height * 2f ? 0f : height;
 
-		var clicked = ImGui.InvisibleButton(id, new Vector2(width - clearWidth, height)) && enabled;
+		var clicked = ImGui.InvisibleButton(id, new Vector2(MathF.Max(1f, width - clearWidth), height)) && enabled;
 		var mouseOver = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
 		var hovered = enabled && mouseOver;
 		var held = enabled && ImGui.IsItemActive();
@@ -99,7 +101,7 @@ public static partial class M3Widgets
 			M3.Alpha(listening ? s.Primary : s.OnSurfaceVariant, dim));
 		textX += iconSize.X + (10f * scale);
 
-		var text = listening ? M3Fork.T("Press a key") : hotkey.ToString();
+		var text = listening ? M3Fork.T("Press a key") : HotkeyLabel(hotkey);
 		var color = listening ? M3.Alpha(s.Primary, 0.65f + (0.35f * MathF.Sin((float)ImGui.GetTime() * 5f)))
 			: hotkey.IsEmpty ? M3.Alpha(s.OnSurfaceVariant, 0.8f * dim)
 			: M3.Alpha(s.OnSurface, 0.95f * dim);
@@ -193,8 +195,20 @@ public static partial class M3Widgets
 		return [.. keys];
 	}
 
+	private static string HotkeyLabel(M3Hotkey hotkey)
+	{
+		if (!_hotkeyLabels.TryGetValue(hotkey, out var label))
+		{
+			label = hotkey.ToString();
+			_hotkeyLabels[hotkey] = label;
+		}
+
+		return label;
+	}
+
 	private static void ResetHotkeys()
 	{
 		_listeningHotkey = 0;
+		_hotkeyLabels.Clear();
 	}
 }

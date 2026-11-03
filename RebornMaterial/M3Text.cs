@@ -42,7 +42,6 @@ public static class M3Text
 		}
 	}
 
-	// A line of text after a dot. Wrapped lines hang under the text, not the dot.
 	public static void Bullet(string text, M3TextStyle style = M3TextStyle.Body, bool wrap = true, Vector4? dot = null)
 	{
 		var scale = M3.Scale;
@@ -101,7 +100,6 @@ public static class M3Text
 		};
 	}
 
-	// Applies a style to any ImGui text drawn inside it, such as BulletText or table cells.
 	public static Scope Push(M3TextStyle style)
 	{
 		var font = FontOf(style);

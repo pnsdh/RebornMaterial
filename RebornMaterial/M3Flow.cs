@@ -1,21 +1,14 @@
 namespace RebornMaterial;
 
-// Make one at the start of a line, then call Next with each item's width just before drawing it.
-public struct M3Flow
+public struct M3Flow(float? gap = null, float? width = null)
 {
-	private readonly float _gap;
-	private readonly float _available;
+	private readonly float _gap = gap ?? M3.Space2;
+	private readonly float _available = width ?? ImGui.GetContentRegionAvail().X;
 	private float _used;
 
 	public M3Flow()
 		: this(null, null)
 	{
-	}
-
-	public M3Flow(float? gap = null, float? width = null)
-	{
-		_gap = gap ?? M3.Space2;
-		_available = width ?? ImGui.GetContentRegionAvail().X;
 	}
 
 	public void Next(float width)

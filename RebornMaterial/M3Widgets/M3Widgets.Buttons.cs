@@ -69,7 +69,9 @@ public static partial class M3Widgets
 		var s = M3.Scheme;
 		var scale = M3.Scale;
 		var height = ButtonHeight;
-		var size = new Vector2(width ?? ButtonWidth(icon, label, texture), height);
+
+		var requested = width ?? ButtonWidth(icon, label, texture);
+		var size = new Vector2(requested == 0f ? 1f : requested, height);
 
 		var pressed = ImGui.InvisibleButton(id, size) && enabled;
 		var mouseOver = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
@@ -101,7 +103,9 @@ public static partial class M3Widgets
 		var gap = iconWidth <= 0f || string.IsNullOrEmpty(label) ? 0f : 8f * scale;
 		var textSize = string.IsNullOrEmpty(label) ? Vector2.Zero : ImGui.CalcTextSize(label);
 		var contentWidth = iconWidth + gap + textSize.X;
-		var cursorX = min.X + ((size.X - contentWidth) * 0.5f);
+
+		var cursorX = min.X + MathF.Max(0f, ((max.X - min.X) - contentWidth) * 0.5f);
+		drawList.PushClipRect(min, max, true);
 
 		if (iconWidth > 0f)
 		{
@@ -114,6 +118,7 @@ public static partial class M3Widgets
 			drawList.AddText(new Vector2(cursorX, min.Y + ((height - textSize.Y) * 0.5f)), M3.U32(content), label);
 		}
 
+		drawList.PopClipRect();
 		M3Draw.FocusRing(min, max, rounding);
 
 		if (hovered)
@@ -140,14 +145,18 @@ public static partial class M3Widgets
 	{
 		_ = Button(id, label, style, icon, width, enabled, tooltip ?? M3Fork.T("Hold to confirm"));
 		var key = ImGuiP.GetItemID();
-		var held = enabled && ImGui.IsItemActive();
+		var active = enabled && ImGui.IsItemActive();
+
+		var held = active && (!ImGui.IsMouseDown(ImGuiMouseButton.Left) || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem));
 		var min = ImGui.GetItemRectMin();
 		var max = ImGui.GetItemRectMax();
-		var delta = ImGui.GetIO().DeltaTime;
+
+		var delta = MathF.Min(ImGui.GetIO().DeltaTime, 0.1f);
 
 		_holdProgress.TryGetValue(key, out var progress);
 		var done = false;
-		if (held && progress >= 0f)
+
+		if (held && progress >= 0f && !ImGui.IsItemActivated())
 		{
 			progress += delta / MathF.Max(0.05f, seconds);
 			if (progress >= 1f)
@@ -158,7 +167,7 @@ public static partial class M3Widgets
 		}
 		else if (!held)
 		{
-			progress = progress < 0f ? 0f : MathF.Max(0f, progress - (delta * 4f));
+			progress = progress < 0f ? (active ? -1f : 0f) : MathF.Max(0f, progress - (delta * 4f));
 		}
 
 		_holdProgress[key] = progress;
@@ -181,7 +190,8 @@ public static partial class M3Widgets
 	public static bool IconButton(string id, FontAwesomeIcon icon, string? tooltip = null, M3ButtonStyle style = M3ButtonStyle.Text, Vector4? tint = null, float? diameter = null, bool enabled = true)
 	{
 		var s = M3.Scheme;
-		var size = Vector2.One * (diameter ?? IconButtonSize);
+		var extent = diameter ?? IconButtonSize;
+		var size = Vector2.One * (extent == 0f ? 1f : extent);
 
 		var pressed = ImGui.InvisibleButton(id, size) && enabled;
 		var mouseOver = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
@@ -253,7 +263,8 @@ public static partial class M3Widgets
 	public static bool IconToggle(string id, FontAwesomeIcon icon, ref bool selected, string? tooltip = null, M3ButtonStyle style = M3ButtonStyle.Text, FontAwesomeIcon selectedIcon = FontAwesomeIcon.None, float? diameter = null, bool enabled = true)
 	{
 		var s = M3.Scheme;
-		var size = Vector2.One * (diameter ?? IconButtonSize);
+		var extent = diameter ?? IconButtonSize;
+		var size = Vector2.One * (extent == 0f ? 1f : extent);
 
 		var pressed = ImGui.InvisibleButton(id, size) && enabled;
 		if (pressed)

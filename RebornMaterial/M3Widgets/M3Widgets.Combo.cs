@@ -29,44 +29,55 @@ public static partial class M3Widgets
 
 	public static bool Combo(string id, ref int index, IReadOnlyList<string> items, float width, string? emptyText = null, bool search = false, bool enabled = true, string? tooltip = null)
 	{
-		return Combo(id, ref index, items.Count, i => items[i], width, emptyText, search, enabled, tooltip);
+		return ComboCore(id, ref index, items.Count, items, static (list, i) => list[i], width, emptyText, search, enabled, tooltip, null, null, null);
 	}
 
 	public static bool Combo(string id, ref int index, int count, Func<int, string> itemLabel, float width, string? emptyText = null, bool search = false, bool enabled = true, string? tooltip = null,
 		Func<int, string?>? itemTooltip = null, Func<int, bool>? itemEnabled = null, Func<int, bool>? itemVisible = null)
 	{
-		var scale = M3.Scale;
-		var label = index >= 0 && index < count ? itemLabel(index) : emptyText ?? string.Empty;
-		var popupId = $"{id}_menu";
-		var key = ImGui.GetID(popupId);
+		return ComboCore(id, ref index, count, (itemLabel, itemTooltip, itemEnabled, itemVisible), static (st, i) => st.itemLabel(i), width, emptyText, search, enabled, tooltip,
+			itemTooltip == null ? null : static (st, i) => st.itemTooltip!(i),
+			itemEnabled == null ? null : static (st, i) => st.itemEnabled!(i),
+			itemVisible == null ? null : static (st, i) => st.itemVisible!(i));
+	}
 
-		var opening = ComboField(id, popupId, label, width, enabled, tooltip);
+	private static bool ComboCore<TState>(string id, ref int index, int count, TState state, Func<TState, int, string> itemLabel, float width, string? emptyText, bool search, bool enabled, string? tooltip,
+		Func<TState, int, string?>? itemTooltip, Func<TState, int, bool>? itemEnabled, Func<TState, int, bool>? itemVisible)
+	{
+		var scale = M3.Scale;
+		var label = index >= 0 && index < count ? itemLabel(state, index) : emptyText ?? string.Empty;
+
+		var key = ImGui.GetID($"{id}_menu");
+		var open = ImGui.IsPopupOpen($"{id}_menu");
+
+		var opening = ComboField(id, open, label, width, enabled, tooltip);
 		if (opening)
 		{
-			ImGui.OpenPopup(popupId);
+			ImGui.OpenPopup($"{id}_menu");
 		}
 
 		var popupWidth = MathF.Max(width, 160f * scale);
-		if (opening || ImGui.IsPopupOpen(popupId))
+		if (opening || open)
 		{
 			if (opening || !_comboWidths.TryGetValue(key, out var measured) || measured.Count != count)
 			{
 				var widest = 0f;
 				for (var i = 0; i < count; i++)
 				{
-					widest = MathF.Max(widest, ImGui.CalcTextSize(itemLabel(i)).X);
+					widest = MathF.Max(widest, ImGui.CalcTextSize(itemLabel(state, i)).X);
 				}
 
 				measured = (count, widest);
 				_comboWidths[key] = measured;
 			}
 
-			popupWidth = MathF.Max(popupWidth, measured.Widest + (56f * scale));
+			var scrollbar = count * MenuItemHeight > 360f * scale ? ImGui.GetStyle().ScrollbarSize : 0f;
+			popupWidth = MathF.Max(popupWidth, measured.Widest + (56f * scale) + scrollbar);
 		}
 
 		popupWidth = MathF.Min(popupWidth, 560f * scale);
 		ImGui.SetNextWindowSizeConstraints(new Vector2(popupWidth, 0f), new Vector2(popupWidth, 460f * scale));
-		using var menu = M3Menu.Begin(popupId);
+		using var menu = M3Menu.Begin($"{id}_menu");
 		if (!menu.IsOpen)
 		{
 			return false;
@@ -94,12 +105,12 @@ public static partial class M3Widgets
 		_comboMatches.Clear();
 		for (var i = 0; i < count; i++)
 		{
-			if (itemVisible?.Invoke(i) == false)
+			if (itemVisible?.Invoke(state, i) == false)
 			{
 				continue;
 			}
 
-			if (query.Length > 0 && !itemLabel(i).Contains(query, StringComparison.OrdinalIgnoreCase))
+			if (query.Length > 0 && !itemLabel(state, i).Contains(query, StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}
@@ -117,7 +128,7 @@ public static partial class M3Widgets
 		{
 			foreach (var match in _comboMatches)
 			{
-				if (itemEnabled?.Invoke(match) != false)
+				if (itemEnabled?.Invoke(state, match) != false)
 				{
 					index = match;
 					ImGui.CloseCurrentPopup();
@@ -152,7 +163,7 @@ public static partial class M3Widgets
 			for (var row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
 			{
 				var i = _comboMatches[row];
-				if (MenuItemCore($"##item{i}", itemLabel(i), i == index, FontAwesomeIcon.None, itemEnabled?.Invoke(i) ?? true, null, itemTooltip?.Invoke(i), null, true))
+				if (MenuItemCore($"##item{i}", itemLabel(state, i), i == index, FontAwesomeIcon.None, itemEnabled?.Invoke(state, i) ?? true, null, itemTooltip?.Invoke(state, i), null, true))
 				{
 					index = i;
 					changed = true;
@@ -172,12 +183,13 @@ public static partial class M3Widgets
 	{
 		var values = EnumValues<T>.All;
 		var index = Array.IndexOf(values, value);
-		Func<int, string> labels = itemLabel == null ? static i => EnumValues<T>.Labels[i] : i => itemLabel(values[i]);
 		var unlisted = index < 0 ? itemLabel?.Invoke(value) ?? EnumLabel(value) : null;
-		if (!Combo(id, ref index, values.Length, labels, width, unlisted, search, enabled, tooltip,
-			itemTooltip == null ? null : i => itemTooltip(values[i]),
+		if (!ComboCore(id, ref index, values.Length, (values, itemLabel, itemTooltip, itemVisible),
+			static (st, i) => st.itemLabel == null ? EnumValues<T>.Labels[i] : st.itemLabel(st.values[i]),
+			width, unlisted, search, enabled, tooltip,
+			itemTooltip == null ? null : static (st, i) => st.itemTooltip!(st.values[i]),
 			null,
-			itemVisible == null ? null : i => itemVisible(values[i])))
+			itemVisible == null ? null : static (st, i) => st.itemVisible!(st.values[i])))
 		{
 			return false;
 		}
@@ -191,7 +203,7 @@ public static partial class M3Widgets
 		var values = EnumValuesOf(enumType);
 		var labels = itemLabel ?? EnumLabel;
 		var index = Array.IndexOf(values, value);
-		if (!Combo(id, ref index, values.Length, i => labels(values[i]), width, labels(value), search, enabled, tooltip))
+		if (!ComboCore(id, ref index, values.Length, (values, labels), static (st, i) => st.labels(st.values[i]), width, labels(value), search, enabled, tooltip, null, null, null))
 		{
 			return false;
 		}
@@ -200,7 +212,7 @@ public static partial class M3Widgets
 		return true;
 	}
 
-	private static bool ComboField(string id, string popupId, string label, float width, bool enabled, string? tooltip)
+	private static bool ComboField(string id, bool open, string label, float width, bool enabled, string? tooltip)
 	{
 		var s = M3.Scheme;
 		var scale = M3.Scale;
@@ -210,7 +222,6 @@ public static partial class M3Widgets
 		var mouseOver = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
 		var hovered = enabled && mouseOver;
 		var held = enabled && ImGui.IsItemActive();
-		var open = ImGui.IsPopupOpen(popupId);
 		var min = ImGui.GetItemRectMin();
 		var max = ImGui.GetItemRectMax();
 		var drawList = ImGui.GetWindowDrawList();

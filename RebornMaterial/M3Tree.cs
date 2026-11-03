@@ -2,8 +2,6 @@ using Dalamud.Interface.Textures.TextureWraps;
 
 namespace RebornMaterial;
 
-// Draw children inside the node's using block while Open is true. The tree remembers which nodes are open.
-// The row stays the last item until the first child, so a right-click menu can follow it.
 public static class M3Tree
 {
 	private static readonly Dictionary<uint, bool> _open = [];
@@ -12,7 +10,6 @@ public static class M3Tree
 
 	private static float ChevronSlot => 20f * M3.Scale;
 
-	// A click on a branch also opens or closes it. With the keyboard, right opens and left closes.
 	public static Scope Node(string id, string label, bool selected = false, bool leaf = false, FontAwesomeIcon icon = FontAwesomeIcon.None,
 		IDalamudTextureWrap? texture = null, Vector4? color = null, bool defaultOpen = false, string? tooltip = null, string? trailing = null)
 	{
@@ -37,7 +34,8 @@ public static class M3Tree
 
 		if (!leaf)
 		{
-			var toggle = clicked;
+			var io = ImGui.GetIO();
+			var toggle = clicked && !(io.MouseReleased[0] && io.MouseClickedLastCount[0] >= 2);
 			if (ImGui.IsItemFocused())
 			{
 				toggle |= (!open && ImGui.IsKeyPressed(ImGuiKey.RightArrow)) || (open && ImGui.IsKeyPressed(ImGuiKey.LeftArrow));
@@ -66,7 +64,7 @@ public static class M3Tree
 		var chevronCenter = new Vector2(min.X + (ChevronSlot * 0.5f) + (2f * scale), min.Y + (height * 0.5f));
 		if (!leaf)
 		{
-			var turn = M3Motion.Approach($"{id}_chevron", open ? 1f : 0f, M3Motion.FastDuration);
+			var turn = M3Motion.Approach(ImGui.GetID($"{id}_chevron"), open ? 1f : 0f, M3Motion.FastDuration);
 			DrawChevron(drawList, chevronCenter, turn, M3.Alpha(content, hovered ? 1f : 0.8f));
 		}
 

@@ -43,25 +43,24 @@ public static partial class M3Widgets
 			M3Tooltip.Show(tooltip);
 		}
 
-		var popupId = $"{id}_picker";
 		if (clicked)
 		{
-			ImGui.OpenPopup(popupId);
+			ImGui.OpenPopup($"{id}_picker");
 		}
 
 		var changed = false;
-		using var popup = ImRaii.Popup(popupId);
+		using var popup = ImRaii.Popup($"{id}_picker");
 		if (!popup)
 		{
 			return false;
 		}
 
 		var flags = alpha ? ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreviewHalf : ImGuiColorEditFlags.NoAlpha;
-		changed = ImGui.ColorPicker4($"##{popupId}_picker", ref color, flags);
+		changed = ImGui.ColorPicker4($"##{id}_picker_picker", ref color, flags);
 
-		var hex = HexOf(color, alpha);
+		var hex = M3ColorMath.ToHex(color, alpha);
 		ImGui.SetNextItemWidth(120f * scale);
-		if (ImGui.InputText($"##{popupId}_hex", ref hex, 10) && TryParseHex(hex, out var parsed))
+		if (ImGui.InputText($"##{id}_picker_hex", ref hex, 10) && M3ColorMath.TryParseHex(hex, out var parsed))
 		{
 			color = alpha ? parsed : parsed with { W = color.W };
 			changed = true;
@@ -70,7 +69,7 @@ public static partial class M3Widgets
 		if (defaultColor is { } fallback)
 		{
 			ImGui.SameLine(0f, M3.Space2);
-			if (Button($"##{popupId}_reset", M3Fork.T("Reset"), M3ButtonStyle.Text, FontAwesomeIcon.Undo, enabled: fallback != color))
+			if (Button($"##{id}_picker_reset", M3Fork.T("Reset"), M3ButtonStyle.Text, FontAwesomeIcon.Undo, enabled: fallback != color))
 			{
 				color = fallback;
 				changed = true;
@@ -78,34 +77,5 @@ public static partial class M3Widgets
 		}
 
 		return changed;
-	}
-
-	private static string HexOf(Vector4 color, bool alpha)
-	{
-		static int Channel(float value)
-		{
-			return (int)MathF.Round(Math.Clamp(value, 0f, 1f) * 255f);
-		}
-
-		var rgb = $"#{Channel(color.X):X2}{Channel(color.Y):X2}{Channel(color.Z):X2}";
-		return alpha ? $"{rgb}{Channel(color.W):X2}" : rgb;
-	}
-
-	private static bool TryParseHex(string text, out Vector4 color)
-	{
-		color = default;
-		var digits = text.Trim().TrimStart('#');
-		if ((digits.Length != 6 && digits.Length != 8) || !uint.TryParse(digits, System.Globalization.NumberStyles.HexNumber, null, out var value))
-		{
-			return false;
-		}
-
-		if (digits.Length == 6)
-		{
-			value = (value << 8) | 0xFF;
-		}
-
-		color = new Vector4(((value >> 24) & 0xFF) / 255f, ((value >> 16) & 0xFF) / 255f, ((value >> 8) & 0xFF) / 255f, (value & 0xFF) / 255f);
-		return true;
 	}
 }
