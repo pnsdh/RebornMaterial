@@ -26,12 +26,14 @@ public static partial class M3Widgets
 	private static uint _listeningHotkey;
 	private static int _listeningFrame;
 	private static ImGuiKey[]? _hotkeyCandidates;
+	private static VirtualKey _heldModifier;
 
 	private static readonly Dictionary<M3Hotkey, string> _hotkeyLabels = [];
 
 	public static float HotkeyFieldHeight => ComboHeight;
 
-	public static bool HotkeyField(string id, ref M3Hotkey hotkey, float width, bool modifiers = true, bool enabled = true, string? tooltip = null)
+	public static bool HotkeyField(string id, ref M3Hotkey hotkey, float width, bool modifiers = true, bool enabled = true, string? tooltip = null,
+		bool modifierKeys = false)
 	{
 		var s = M3.Scheme;
 		var scale = M3.Scale;
@@ -64,6 +66,7 @@ public static partial class M3Widgets
 			listening = !listening;
 			_listeningHotkey = listening ? key : 0;
 			_listeningFrame = frame;
+			_heldModifier = VirtualKey.NO_KEY;
 		}
 
 		var changed = false;
@@ -77,6 +80,14 @@ public static partial class M3Widgets
 			else if (TryReadHotkey(modifiers, out var pressed))
 			{
 				hotkey = pressed;
+				changed = true;
+				_listeningHotkey = 0;
+				listening = false;
+				_heldModifier = VirtualKey.NO_KEY;
+			}
+			else if (modifierKeys && TryReadModifierKey(out var modifierKey))
+			{
+				hotkey = new M3Hotkey(modifierKey);
 				changed = true;
 				_listeningHotkey = 0;
 				listening = false;
@@ -135,15 +146,38 @@ public static partial class M3Widgets
 		return changed;
 	}
 
-	public static bool RowHotkey(string label, ref M3Hotkey hotkey, string? supporting = null, bool modifiers = true, bool enabled = true)
+	public static bool RowHotkey(string label, ref M3Hotkey hotkey, string? supporting = null, bool modifiers = true, bool enabled = true, bool modifierKeys = false)
 	{
 		var (display, id) = SplitLabel(label);
 		var width = MathF.Min(200f * M3.Scale, M3SettingRow.MaxControlWidth() * 0.6f);
 		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, HotkeyFieldHeight), disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = HotkeyField($"##{id}_hotkey", ref hotkey, width, modifiers, enabled);
+		var changed = HotkeyField($"##{id}_hotkey", ref hotkey, width, modifiers, enabled, modifierKeys: modifierKeys);
 		M3SettingRow.End(row);
 		return changed;
+	}
+
+	private static bool TryReadModifierKey(out VirtualKey key)
+	{
+		key = VirtualKey.NO_KEY;
+		var held = ImGui.IsKeyDown(ImGuiKey.LeftAlt) || ImGui.IsKeyDown(ImGuiKey.RightAlt) ? VirtualKey.MENU
+			: ImGui.IsKeyDown(ImGuiKey.LeftCtrl) || ImGui.IsKeyDown(ImGuiKey.RightCtrl) ? VirtualKey.CONTROL
+			: ImGui.IsKeyDown(ImGuiKey.LeftShift) || ImGui.IsKeyDown(ImGuiKey.RightShift) ? VirtualKey.SHIFT
+			: VirtualKey.NO_KEY;
+		if (held != VirtualKey.NO_KEY)
+		{
+			_heldModifier = held;
+			return false;
+		}
+
+		if (_heldModifier == VirtualKey.NO_KEY)
+		{
+			return false;
+		}
+
+		key = _heldModifier;
+		_heldModifier = VirtualKey.NO_KEY;
+		return true;
 	}
 
 	private static bool TryReadHotkey(bool modifiers, out M3Hotkey hotkey)
@@ -209,6 +243,7 @@ public static partial class M3Widgets
 	private static void ResetHotkeys()
 	{
 		_listeningHotkey = 0;
+		_heldModifier = VirtualKey.NO_KEY;
 		_hotkeyLabels.Clear();
 	}
 }

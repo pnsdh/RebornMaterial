@@ -218,6 +218,15 @@ public static class M3Gallery
 	private static int _rowSegmentIcons = 1;
 	private static M3Hotkey _hotkey = new(Dalamud.Game.ClientState.Keys.VirtualKey.G, Ctrl: true);
 	private static M3Hotkey _holdKey = M3Hotkey.None;
+	private static M3Hotkey _modifierKey = new(Dalamud.Game.ClientState.Keys.VirtualKey.MENU);
+	private static int _levelLow = 50;
+	private static int _levelHigh = 90;
+	private static int _pickerChoice = -1;
+	private static int _gameIconChoice;
+	private static readonly string[] _pickerChoices = ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water"];
+	private static readonly uint[] _gameIcons = [65002, 65025, 65049];
+	private static readonly M3PluginRequirement[] _demoPlugins = [new("vnavmesh", "vnavmesh")];
+	private static readonly (string Name, int Have, int Need)[] _tableRows = [("Iron Ore", 12, 20), ("Fire Shard", 340, 300), ("Maple Log", 0, 6)];
 	private static string _rowText = "auto";
 	private static string _secret = string.Empty;
 	private static string _hexText = "#2F6DB5";
@@ -1125,6 +1134,41 @@ public static class M3Gallery
 			Pressed("Interactive pill");
 		}
 
+		var gil = M3ActionIcon.GameIcon(65002);
+		flow.Next(M3Widgets.PillSize("12,500", gil).X);
+		_ = M3Widgets.Pill("##pill_texture", "12,500", M3.Scheme.Secondary, gil, "Pills can lead with a texture, such as a currency's icon");
+		flow.Next(M3Widgets.PluginPillSize(_demoPlugins).X);
+		M3Widgets.PluginPill("##pill_plugins", _demoPlugins);
+		Caption("The last pill says whether a plugin a feature needs is installed and enabled. Hover it for details.");
+
+		Heading("Game icons and status dots", isNew: true);
+		flow = new M3Flow(M3.Space2, RowWidth);
+		var iconSize = 32f * scale;
+		for (var i = 0; i < _gameIcons.Length; i++)
+		{
+			flow.Next(iconSize);
+			if (M3Widgets.GameIconButton($"##gallery_game_icon_{i}", _gameIcons[i], iconSize, i == _gameIconChoice ? 1f : 0.45f,
+				"Game icons can be buttons; the chosen one is bright and ringed", selected: i == _gameIconChoice))
+			{
+				_gameIconChoice = i;
+			}
+		}
+
+		var dots = ImGui.GetCursorScreenPos();
+		ImGui.Dummy(new Vector2(RowWidth, ImGui.GetTextLineHeight()));
+		var dotList = ImGui.GetWindowDrawList();
+		M3Severity[] dotSeverities = [M3Severity.Success, M3Severity.Warning, M3Severity.Error, M3Severity.Info];
+		for (var i = 0; i < dotSeverities.Length; i++)
+		{
+			var center = dots + new Vector2((6f + (i * 18f)) * scale, ImGui.GetTextLineHeight() * 0.5f);
+			if (M3Draw.StatusDot(dotList, center, M3.Severity(dotSeverities[i])))
+			{
+				M3Tooltip.Show($"{dotSeverities[i]} dot");
+			}
+		}
+
+		Caption("Status dots mark a row's state, and report hovering so they can explain it.");
+
 		Heading("Sliders");
 		var track = 200f * scale;
 		_ = M3Widgets.Slider("##slider_float", ref _slider, 0f, 1f, $"{_slider:P0}", track);
@@ -1224,9 +1268,39 @@ public static class M3Gallery
 		_ = M3Widgets.NumberField("##gallery_number_bare", ref _distance, fieldWidth, format: "%.2f");
 		Beside("A bare field, with no steps or unit.");
 
+		Heading("Number ranges", isNew: true);
+		_ = M3Widgets.RowIntRange("Item level###gallery_int_range", ref _levelLow, ref _levelHigh, 1, 999, null,
+			"Two fields, for ranges too wide for a slider. Raising one past the other carries it along.");
+
+		Heading("Picker fields", isNew: true);
+		const string PickerMenu = "##gallery_picker_menu";
+		var pickerLabel = _pickerChoice >= 0 ? _pickerChoices[_pickerChoice] : "Pick an element";
+		if (M3Widgets.PickerField("##gallery_picker", pickerLabel, width, ImGui.IsPopupOpen(PickerMenu), _pickerChoice < 0))
+		{
+			M3Menu.Open(PickerMenu);
+		}
+
+		using (var picker = M3Menu.Begin(PickerMenu))
+		{
+			if (picker.IsOpen)
+			{
+				for (var i = 0; i < _pickerChoices.Length; i++)
+				{
+					if (M3Menu.Item($"##gallery_picker_{i}", _pickerChoices[i], selected: i == _pickerChoice))
+					{
+						_pickerChoice = i;
+					}
+				}
+			}
+		}
+
+		Caption("Looks like a combo, but opens a popup of your own, such as a searchable list with icons.");
+
 		Heading("Hotkeys", isNew: true);
 		_ = M3Widgets.RowHotkey("Open the main window###gallery_hotkey", ref _hotkey, "Click, then press a key. Escape cancels.");
 		_ = M3Widgets.RowHotkey("Hold to show###gallery_hold_key", ref _holdKey, "Only the key; Ctrl, Shift and Alt are ignored.", modifiers: false);
+		_ = M3Widgets.RowHotkey("Hold to inspect###gallery_modifier_key", ref _modifierKey, "Ctrl, Shift or Alt on their own count too: press and let go.",
+			modifiers: false, modifierKeys: true);
 
 		Heading("Text rows and help markers", isNew: true);
 		_ = M3Widgets.RowText("Lifestream command###gallery_row_text", ref _rowText, "auto", "A text field in a setting row.");
@@ -1648,6 +1722,43 @@ public static class M3Gallery
 			flow.Next(44f * scale);
 			_ = M3ActionIcon.Draw($"##gallery_cooldown_{i}", _demoIcons[i], 44f * scale, cooldown);
 		}
+
+		Heading("Panels and tables", isNew: true);
+		using (var panel = M3Panel.Begin("##gallery_panel", new Vector2(RowWidth, 130f * scale)))
+		{
+			if (panel)
+			{
+				using var tableStyle = M3Table.PushStyle();
+				if (ImGui.BeginTable("##gallery_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.PadOuterX))
+				{
+					ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch, 2f);
+					ImGui.TableSetupColumn("Have", ImGuiTableColumnFlags.WidthStretch, 1f);
+					ImGui.TableSetupColumn("Done", ImGuiTableColumnFlags.WidthStretch, 1f);
+					ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+					ImGui.TableNextColumn();
+					M3Table.Header("Item", center: false);
+					ImGui.TableNextColumn();
+					M3Table.Header("Have", "Held out of needed");
+					ImGui.TableNextColumn();
+					M3Table.Header("Done");
+					foreach (var (name, have, need) in _tableRows)
+					{
+						ImGui.TableNextRow();
+						ImGui.TableNextColumn();
+						ImGui.TextUnformatted(name);
+						ImGui.TableNextColumn();
+						M3Table.CenteredText($"{have}/{need}");
+						ImGui.TableNextColumn();
+						var done = need > 0 ? (float)have / need : 1f;
+						M3Table.Progress(done, $"{MathF.Min(done, 1f) * 100f:0}%", done >= 1f ? M3.Scheme.Success : M3.Scheme.Error);
+					}
+
+					ImGui.EndTable();
+				}
+			}
+		}
+
+		Caption("A bordered pane on a surface, with a table that has a plain header row and progress cells.");
 	}
 
 	#endregion
@@ -1724,6 +1835,17 @@ public static class M3Gallery
 		{
 			_manyTabs = picked;
 		}
+
+		Heading("Controller", isNew: true);
+		var dot = ImGui.GetCursorScreenPos() + new Vector2(6f * scale, ImGui.GetTextLineHeight() * 0.5f);
+		ImGui.Dummy(new Vector2(14f * scale, ImGui.GetTextLineHeight()));
+		M3Draw.StatusDot(ImGui.GetWindowDrawList(), dot, M3Gamepad.NavActive ? s.Success : s.OnSurfaceVariant);
+		Beside(M3Gamepad.NavActive ? "A controller is driving the interface." : "Turn on Dalamud's gamepad navigation to try these.", false);
+		Caption("Square or X opens a right-click menu on the focused control, such as the button below.");
+		Caption("L1 and R1 step through the pages of a shell window, and a shell or tab row can do the same with M3Gamepad.PageStep.");
+		Caption(M3Gamepad.InputBlockingEnabled
+			? "Input blocking is on: the game ignores the controller while a window like this has controller focus."
+			: "With M3Gamepad.EnableInputBlocking, the game ignores the controller while one of your windows has controller focus.");
 
 		Heading("Menus", isNew: true);
 		Caption("A menu from a button, with a submenu. Picking an item closes every open menu. Right-click the button for the same menu.");

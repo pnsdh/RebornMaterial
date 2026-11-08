@@ -166,6 +166,75 @@ public static partial class M3Widgets
 		return clicked;
 	}
 
+	public static Vector2 PillSize(string label, IDalamudTextureWrap? texture)
+	{
+		var scale = M3.Scale;
+		var height = M3.FitText(24f, 3f);
+		var width = ImGui.CalcTextSize(label).X + (12f * scale * 2f);
+		width += texture == null ? 12f * scale : height - (6f * scale);
+		return new Vector2(width, height);
+	}
+
+	public static bool Pill(string id, string label, Vector4 accent, IDalamudTextureWrap? texture, string? tooltip = null, bool interactive = false)
+	{
+		var scale = M3.Scale;
+		var size = PillSize(label, texture);
+
+		var clicked = false;
+		if (interactive)
+		{
+			clicked = ImGui.InvisibleButton(id, size);
+		}
+		else
+		{
+			ImGui.Dummy(size);
+		}
+
+		var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
+		var min = ImGui.GetItemRectMin();
+		var max = ImGui.GetItemRectMax();
+		var drawList = ImGui.GetWindowDrawList();
+		var rounding = size.Y * 0.5f;
+
+		if (interactive && hovered)
+		{
+			ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+		}
+
+		drawList.AddRectFilled(min, max, M3.U32(accent, hovered ? 0.20f : 0.13f), rounding);
+		drawList.AddRect(min, max, M3.U32(accent, hovered ? 0.62f : 0.40f), rounding, ImDrawFlags.None, 1f * scale);
+
+		var cursorX = min.X + (12f * scale);
+		if (texture == null)
+		{
+			var radius = 3f * scale;
+			drawList.AddCircleFilled(new Vector2(cursorX + radius, min.Y + (size.Y * 0.5f)), radius, M3.U32(accent), 12);
+			cursorX += (radius * 2f) + (6f * scale);
+		}
+		else
+		{
+			var iconSize = size.Y - (6f * scale);
+			cursorX = min.X + (6f * scale);
+			M3Draw.Texture(drawList, texture, new Vector2(cursorX, min.Y + (3f * scale)), iconSize);
+			cursorX += iconSize + (6f * scale);
+		}
+
+		var textSize = ImGui.CalcTextSize(label);
+		drawList.AddText(new Vector2(cursorX, min.Y + ((size.Y - textSize.Y) * 0.5f)), M3.U32(M3.Scheme.OnSurface, 0.95f), label);
+
+		if (interactive)
+		{
+			M3Draw.FocusRing(min, max, rounding);
+		}
+
+		if (hovered)
+		{
+			M3Tooltip.Show(tooltip);
+		}
+
+		return clicked;
+	}
+
 	private static float InputChipRemoveWidth => ChipHeight;
 
 	public static float InputChipWidth(string label, FontAwesomeIcon icon = FontAwesomeIcon.None)

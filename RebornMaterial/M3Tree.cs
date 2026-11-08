@@ -131,18 +131,7 @@ public static class M3Tree
 
 	private static void DrawChevron(ImDrawListPtr drawList, Vector2 center, float turn, Vector4 color)
 	{
-		var scale = M3.Scale;
-		var arm = 3.5f * scale;
-		var (sin, cos) = MathF.SinCos(turn * MathF.PI * 0.5f);
-
-		Vector2 Rotate(float px, float py)
-		{
-			return center + new Vector2((px * cos) - (py * sin), (px * sin) + (py * cos));
-		}
-
-		var tip = Rotate(arm * 0.6f, 0f);
-		drawList.AddLine(Rotate(-arm * 0.6f, -arm), tip, M3.U32(color), 1.75f * scale);
-		drawList.AddLine(tip, Rotate(-arm * 0.6f, arm), M3.U32(color), 1.75f * scale);
+		M3Draw.Chevron(drawList, center, turn, color);
 	}
 
 	public readonly struct Scope(bool active, bool open, bool clicked, bool doubleClicked, bool rightClicked, float indent, float guideX, float guideTop) : IDisposable

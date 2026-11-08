@@ -211,6 +211,32 @@ public static class M3Draw
 		return M3ActionIcon.Image(drawList, texture, min, min + new Vector2(size, size), M3.ShapeExtraSmall, alpha);
 	}
 
+	public static bool StatusDot(ImDrawListPtr drawList, Vector2 center, Vector4 color, float radius = 0f)
+	{
+		var scale = M3.Scale;
+		radius = radius > 0f ? radius : MathF.Max(2.5f, 4f * scale);
+		drawList.AddCircleFilled(center, radius, M3.U32(color), 16);
+		var reach = new Vector2(radius + (3f * scale));
+		return MouseOver(center - reach, center + reach);
+	}
+
+	public static void Chevron(ImDrawListPtr drawList, Vector2 center, float turn, Vector4 color, float arm = 0f)
+	{
+		var scale = M3.Scale;
+		arm = arm > 0f ? arm : 3.5f * scale;
+		var (sin, cos) = MathF.SinCos(turn * MathF.PI * 0.5f);
+
+		Vector2 Rotate(float px, float py)
+		{
+			return center + new Vector2((px * cos) - (py * sin), (px * sin) + (py * cos));
+		}
+
+		var tip = Rotate(arm * 0.6f, 0f);
+		var thickness = MathF.Max(1f, 1.75f * scale);
+		drawList.AddLine(Rotate(-arm * 0.6f, -arm), tip, M3.U32(color), thickness);
+		drawList.AddLine(tip, Rotate(-arm * 0.6f, arm), M3.U32(color), thickness);
+	}
+
 	public static float WrappedText(string text, Vector2 position, float wrapWidth, Vector4 color)
 	{
 		ImGui.SetCursorScreenPos(position);

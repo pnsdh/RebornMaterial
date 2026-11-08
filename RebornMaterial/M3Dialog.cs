@@ -83,6 +83,11 @@ public static class M3Dialog
 
 	public static int Actions(ReadOnlySpan<M3DialogAction> actions)
 	{
+		return Actions(actions, true);
+	}
+
+	public static int Actions(ReadOnlySpan<M3DialogAction> actions, bool closeOnPress)
+	{
 		var gap = M3.Space2;
 		var total = 0f;
 		foreach (var action in actions)
@@ -113,7 +118,7 @@ public static class M3Dialog
 			}
 		}
 
-		if (pressed >= 0)
+		if (pressed >= 0 && closeOnPress)
 		{
 			ImGui.CloseCurrentPopup();
 		}

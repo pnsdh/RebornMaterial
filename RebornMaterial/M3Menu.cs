@@ -29,6 +29,11 @@ public static class M3Menu
 
 	public static Scope BeginContext(string id)
 	{
+		if (M3Gamepad.ContextMenuRequested())
+		{
+			ImGui.OpenPopup(id);
+		}
+
 		PushStyle();
 		return Finish(ImGui.BeginPopupContextItem(id));
 	}

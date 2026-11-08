@@ -60,9 +60,9 @@ public static class M3ActionIcon
 		return pressed;
 	}
 
-	public static IDalamudTextureWrap? GameIcon(uint iconId, bool highResolution = true)
+	public static IDalamudTextureWrap? GameIcon(uint iconId, bool highResolution = true, bool hq = false)
 	{
-		if (iconId == 0 || !M3Services.TextureProvider.TryGetFromGameIcon(new GameIconLookup(iconId, false, highResolution), out var icon))
+		if (iconId == 0 || !M3Services.TextureProvider.TryGetFromGameIcon(new GameIconLookup(iconId, hq, highResolution), out var icon))
 		{
 			return null;
 		}

@@ -41,6 +41,8 @@ public sealed class M3WindowFold
 
 	public float BarTop { get; set; }
 
+	public bool BlocksGameInput { get; set; } = true;
+
 	public Vector2 OpenPadding => _openPadding;
 
 	public float Rounding => _rounding;
@@ -168,6 +170,7 @@ public sealed class M3WindowFold
 		PopStyle();
 		_windowPos = ImGui.GetWindowPos();
 		_windowSize = ImGui.GetWindowSize();
+		M3Gamepad.ReportFocus(BlocksGameInput);
 
 		if (_pendingMinimize)
 		{

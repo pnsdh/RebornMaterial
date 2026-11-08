@@ -471,6 +471,37 @@ public static class M3Navigation
 		return left + width > scroll + viewWidth ? left + width - viewWidth + margin : scroll;
 	}
 
+	public static string? Step(IReadOnlyList<M3NavItem> items, int step)
+	{
+		if (items.Count == 0 || step == 0)
+		{
+			return null;
+		}
+
+		var selected = -1;
+		for (var i = 0; i < items.Count; i++)
+		{
+			if (items[i].Selected)
+			{
+				selected = i;
+				break;
+			}
+		}
+
+		var next = selected < 0 ? 0 : (((selected + step) % items.Count) + items.Count) % items.Count;
+		return items[next].Id;
+	}
+
+	public static int Step(int selectedIndex, int count, int step)
+	{
+		if (count <= 0 || step == 0)
+		{
+			return selectedIndex;
+		}
+
+		return selectedIndex < 0 ? 0 : (((selectedIndex + step) % count) + count) % count;
+	}
+
 	internal static void Reset()
 	{
 		_tabScroll.Clear();

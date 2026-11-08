@@ -6,9 +6,11 @@
 		<AssemblyName>RebornMaterial</AssemblyName>
 		<Version>1.0.0</Version>
 
-		<!-- A library, not a plugin: no plugin zip, and only the Dalamud assemblies it actually uses. -->
+		<!-- A library, not a plugin: no plugin zip, and only the Dalamud assemblies it actually uses.
+		     FFXIVClientStructs is for the controller input blocking in M3GamepadBlocker. -->
 		<Use_DalamudPackager>false</Use_DalamudPackager>
-		<Use_Dalamud_FFXIVClientStructs>false</Use_Dalamud_FFXIVClientStructs>
+		<Use_Dalamud_FFXIVClientStructs>true</Use_Dalamud_FFXIVClientStructs>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Use_Dalamud_Newtonsoft_Json>false</Use_Dalamud_Newtonsoft_Json>
 		<Use_Dalamud_Lumina>true</Use_Dalamud_Lumina> <!-- Fork: reads the game's KrnAXIS_360 (see M3Fork.KrnAxis36.cs) -->
 		<Use_Dalamud_Lumina_Excel>false</Use_Dalamud_Lumina_Excel>
