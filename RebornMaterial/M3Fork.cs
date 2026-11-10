@@ -17,7 +17,7 @@ namespace RebornMaterial;
 /// <item>the library's own strings go through <see cref="T"/>, so a plugin can translate them.</item>
 /// </list>
 /// </summary>
-public static partial class M3Fork
+public static class M3Fork
 {
 	// Type scale, as ratios of Dalamud's default font size (before the text size setting): upstream's pixel sizes
 	// over the 16px default font they were tuned for. Sizes below body text stay closer to it than upstream's 11px
@@ -30,7 +30,8 @@ public static partial class M3Fork
 
 	private const int IconFontCapacity = 4;
 
-	// The Korean Dalamud draws Axis in KrnAxis, Hangul included, only between these sizes (after the atlas scale).
+	// The Korean Dalamud draws Axis in KrnAxis, Hangul included, from 14px up (after the atlas scale); builds from
+	// before KrnAxis 36pt only up to 24px.
 	private const float KrnAxisMinPx = 14f;
 	private const float KrnAxisMaxPx = 24f;
 
@@ -52,11 +53,11 @@ public static partial class M3Fork
 
 	/// <summary>
 	/// The Axis game font at <paramref name="px"/>. The Korean Dalamud picks the game's Korean Axis (KrnAxis, Hangul
-	/// drawn to match) only from 14 to 24px, and the global Axis, which has no Hangul, outside that. So on the Korean
-	/// Dalamud, below 14px the font is built at 14px and scaled down with <see cref="ImFont.Scale"/>
-	/// (<see cref="AxisBuildPx"/>), and past 24px it's KrnAXIS_360 read from the game files (M3Fork.KrnAxis36.cs).
-	/// Without KrnAxis, Hangul comes from Dalamud's Noto; Dalamud copies game glyphs in after the atlas is built, over
-	/// merged ones, so Noto only fills the glyphs the game font lacks.
+	/// drawn to match) from 14px up (12, 14, 18 and 36pt), and the global Axis 9.6pt, which has no Hangul, below
+	/// that. So on the Korean Dalamud, below 14px the font is built at 14px and scaled down with
+	/// <see cref="ImFont.Scale"/> (<see cref="AxisBuildPx"/>). Without KrnAxis, Hangul comes from Dalamud's Noto;
+	/// Dalamud copies game glyphs in after the atlas is built, over merged ones, so Noto only fills the glyphs the
+	/// game font lacks.
 	/// </summary>
 	internal static IFontHandle NewAxisFontHandle(int px)
 	{
@@ -64,12 +65,6 @@ public static partial class M3Fork
 		{
 			e.OnPreBuild(tk =>
 			{
-				if (UseKrnAxis36(px * tk.Scale))
-				{
-					tk.Font = NewKrnAxis36Font(tk, px);
-					return;
-				}
-
 				var buildPx = AxisBuildPx(px, tk.Scale);
 				var font = tk.AddGameGlyphs(new GameFontStyle(GameFontFamily.Axis, buildPx), null, default);
 				if (!HasKrnAxis)
@@ -80,17 +75,7 @@ public static partial class M3Fork
 
 				tk.Font = font;
 			});
-			e.OnPostBuild(tk =>
-			{
-				if (UseKrnAxis36(px * tk.Scale))
-				{
-					AddKrnAxis36Glyphs(tk, tk.Font, px);
-				}
-				else
-				{
-					tk.Font.Scale = px / AxisBuildPx(px, tk.Scale);
-				}
-			});
+			e.OnPostBuild(tk => tk.Font.Scale = px / AxisBuildPx(px, tk.Scale));
 		});
 	}
 
@@ -105,8 +90,8 @@ public static partial class M3Fork
 	/// <summary>
 	/// The size to build Axis at for <paramref name="px"/>: the nearest size the Korean Dalamud draws in KrnAxis, or
 	/// <paramref name="px"/> itself without KrnAxis (the global Dalamud has a sharp Axis at every size). Below 14px it
-	/// is shrunk from KrnAxis 12pt, which stays sharp. Past 24px KrnAXIS_360 takes over (<see cref="UseKrnAxis36"/>);
-	/// only if that can't be read is it enlarged from KrnAxis 18pt, and softens.
+	/// is shrunk from KrnAxis 12pt, which stays sharp. A Korean Dalamud from before KrnAxis 36pt (15.0.3.9 of early
+	/// November 2026) stops at 24px, so past that it is enlarged from KrnAxis 18pt, and softens.
 	/// </summary>
 	private static float AxisBuildPx(int px, float atlasScale)
 	{
@@ -150,9 +135,12 @@ public static partial class M3Fork
 				{
 					while (_iconHandles.Count >= IconFontCapacity)
 					{
-						var oldest = _iconHandles.Keys.First();
-						_iconHandles[oldest].Dispose();
-						_ = _iconHandles.Remove(oldest);
+						foreach (var (oldest, stale) in _iconHandles)
+						{
+							stale.Dispose();
+							_ = _iconHandles.Remove(oldest);
+							break;
+						}
 					}
 
 					handle = M3.PluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(
@@ -273,7 +261,6 @@ public static partial class M3Fork
 			_iconHandles.Clear();
 		}
 
-		DisposeKrnAxis36();
 		Localize = null;
 	}
 
