@@ -127,7 +127,6 @@ public static class M3Gallery
 
 	private static readonly float[] _actionIconSizes = [24f, 32f, 48f, 64f];
 
-	// Job icons, which every client has.
 	private static readonly uint[] _demoIcons = [62119, 62121, 62124, 62125, 62130, 62131, 62133, 62134, 62135, 62137, 62138, 62140];
 
 	private static int _page;
@@ -227,6 +226,7 @@ public static class M3Gallery
 	private static readonly uint[] _gameIcons = [65002, 65025, 65049];
 	private static readonly M3PluginRequirement[] _demoPlugins = [new("vnavmesh", "vnavmesh")];
 	private static readonly (string Name, int Have, int Need)[] _tableRows = [("Iron Ore", 12, 20), ("Fire Shard", 340, 300), ("Maple Log", 0, 6)];
+	private static readonly M3Severity[] _dotSeverities = [M3Severity.Success, M3Severity.Warning, M3Severity.Error, M3Severity.Info];
 	private static string _rowText = "auto";
 	private static string _secret = string.Empty;
 	private static string _hexText = "#2F6DB5";
@@ -249,11 +249,11 @@ public static class M3Gallery
 		new("Big game", [0f, 0f, 0f, 1f, 2f, 3f, 2f, 1f]),
 	];
 
-	private static readonly string[] _hours = [.. Enumerable.Range(0, 24).Select(hour => $"{hour:00}:00")];
+	private static readonly string[] _hours = HourLabels();
 	private static readonly M3ChartSeries[] _hourSeries =
 	[
-		new("Catches", [.. Enumerable.Range(0, 24).Select(hour => 12f + (9f * MathF.Sin(hour / 3.5f)))]),
-		new("Misses", [.. Enumerable.Range(0, 24).Select(hour => 6f + (4f * MathF.Cos(hour / 2.5f)))]),
+		new("Catches", Hourly(hour => 12f + (9f * MathF.Sin(hour / 3.5f)))),
+		new("Misses", Hourly(hour => 6f + (4f * MathF.Cos(hour / 2.5f)))),
 	];
 
 	public static void Draw()
@@ -261,7 +261,6 @@ public static class M3Gallery
 		DrawControls();
 
 		using var scale = M3.PushWindowScale(_scales[_scaleIndex]);
-		// Restyles the pages as a window of this scale and density would be, body font included.
 		using var theme = M3Style.Push(_densities[_densityIndex]);
 
 		var picked = M3Navigation.Tabs("##gallery_pages", _pages, _page, width: RowWidth);
@@ -1157,13 +1156,12 @@ public static class M3Gallery
 		var dots = ImGui.GetCursorScreenPos();
 		ImGui.Dummy(new Vector2(RowWidth, ImGui.GetTextLineHeight()));
 		var dotList = ImGui.GetWindowDrawList();
-		M3Severity[] dotSeverities = [M3Severity.Success, M3Severity.Warning, M3Severity.Error, M3Severity.Info];
-		for (var i = 0; i < dotSeverities.Length; i++)
+		for (var i = 0; i < _dotSeverities.Length; i++)
 		{
 			var center = dots + new Vector2((6f + (i * 18f)) * scale, ImGui.GetTextLineHeight() * 0.5f);
-			if (M3Draw.StatusDot(dotList, center, M3.Severity(dotSeverities[i])))
+			if (M3Draw.StatusDot(dotList, center, M3.Severity(_dotSeverities[i])))
 			{
-				M3Tooltip.Show($"{dotSeverities[i]} dot");
+				M3Tooltip.Show($"{_dotSeverities[i]} dot");
 			}
 		}
 
@@ -1240,7 +1238,7 @@ public static class M3Gallery
 		_ = M3Widgets.Combo("##gallery_combo_empty", ref _comboEmpty, _comboItems, width, "Nothing picked yet");
 
 		Heading("Search, enums and item tooltips", isNew: true);
-		_bigComboItems ??= [.. Enumerable.Range(1, 5000).Select(i => $"Item {i:0000}")];
+		_bigComboItems ??= BigComboItems();
 		_ = M3Widgets.Combo("##gallery_combo_big", ref _bigComboIndex, _bigComboItems, width, search: true);
 		Caption("5,000 items with a search box. Enter picks the first match, and only the rows in view are drawn.");
 		ImGui.Dummy(new Vector2(0f, M3.Space1));
@@ -1934,6 +1932,39 @@ public static class M3Gallery
 	private static void Pressed(string what)
 	{
 		M3Snackbar.Show($"{what} pressed", duration: 2f);
+	}
+
+	private static string[] HourLabels()
+	{
+		var labels = new string[24];
+		for (var hour = 0; hour < labels.Length; hour++)
+		{
+			labels[hour] = $"{hour:00}:00";
+		}
+
+		return labels;
+	}
+
+	private static float[] Hourly(Func<int, float> value)
+	{
+		var values = new float[24];
+		for (var hour = 0; hour < values.Length; hour++)
+		{
+			values[hour] = value(hour);
+		}
+
+		return values;
+	}
+
+	private static string[] BigComboItems()
+	{
+		var items = new string[5000];
+		for (var i = 0; i < items.Length; i++)
+		{
+			items[i] = $"Item {i + 1:0000}";
+		}
+
+		return items;
 	}
 
 	#endregion

@@ -73,7 +73,7 @@ internal sealed unsafe class M3GamepadBlocker : IDisposable
 		catch (Exception ex)
 		{
 			M3Services.Log?.Warning($"[RebornMaterial] Controller input blocking isn't available: {ex.Message}");
-			IsEnabled = false;
+			Disable();
 		}
 	}
 

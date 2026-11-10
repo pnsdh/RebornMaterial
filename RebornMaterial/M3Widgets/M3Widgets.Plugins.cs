@@ -11,18 +11,15 @@ public static partial class M3Widgets
 	public static void PluginPill(string id, IReadOnlyList<M3PluginRequirement> plugins, bool any = false)
 	{
 		var (label, icon, tone) = PluginPillState(plugins, any);
-		Pill(id, label, tone, icon);
-		if (ImGui.IsItemHovered())
-		{
-			M3Tooltip.Show(M3Plugins.Describe(plugins, any));
-		}
+		DrawPluginPill(id, plugins, any, label, icon, tone);
 	}
 
 	public static bool RowPluginSwitch(string label, ref bool value, IReadOnlyList<M3PluginRequirement> plugins, string? supporting = null, bool any = false,
 		bool enabled = true)
 	{
 		var (display, id) = SplitLabel(label);
-		var pill = PluginPillSize(plugins, any);
+		var (pillLabel, pillIcon, pillTone) = PluginPillState(plugins, any);
+		var pill = PillSize(pillLabel, pillIcon);
 		var switchSize = SwitchSize();
 		var gap = M3.Space2;
 		var controlSize = new Vector2(pill.X + gap + switchSize.X, MathF.Max(pill.Y, switchSize.Y));
@@ -30,11 +27,20 @@ public static partial class M3Widgets
 		var row = M3SettingRow.Begin(display, supporting, controlSize, disabled: !enabled);
 		var origin = row.ControlPosition;
 		ImGui.SetCursorScreenPos(origin + new Vector2(0f, (controlSize.Y - pill.Y) * 0.5f));
-		PluginPill($"##{id}_plugins", plugins, any);
+		DrawPluginPill($"##{id}_plugins", plugins, any, pillLabel, pillIcon, pillTone);
 		ImGui.SetCursorScreenPos(origin + new Vector2(pill.X + gap, (controlSize.Y - switchSize.Y) * 0.5f));
 		var changed = Switch($"##{id}_switch", ref value, enabled);
 		M3SettingRow.End(row);
 		return changed;
+	}
+
+	private static void DrawPluginPill(string id, IReadOnlyList<M3PluginRequirement> plugins, bool any, string label, FontAwesomeIcon icon, Vector4 tone)
+	{
+		Pill(id, label, tone, icon);
+		if (ImGui.IsItemHovered())
+		{
+			M3Tooltip.Show(M3Plugins.Describe(plugins, any));
+		}
 	}
 
 	private static (string Label, FontAwesomeIcon Icon, Vector4 Tone) PluginPillState(IReadOnlyList<M3PluginRequirement> plugins, bool any)
@@ -48,11 +54,11 @@ public static partial class M3Widgets
 		else if (any)
 		{
 			label = "Plugin missing";
-			foreach (var plugin in plugins)
+			for (var i = 0; i < plugins.Count; i++)
 			{
-				if (M3Plugins.IsLoaded(plugin))
+				if (M3Plugins.IsLoaded(plugins[i]))
 				{
-					label = plugin.Name;
+					label = plugins[i].Name;
 					break;
 				}
 			}

@@ -137,7 +137,7 @@ public abstract class M3FoldWindow : M3Window
 		}
 
 		var actions = WindowActions;
-		var first = actions.Length - ShownActions;
+		var first = actions.Length - Math.Min(_shownActions, actions.Length);
 		var pressed = _fold.DrawBar("##fold_actions", actions.AsSpan(first), Brand, out var closed, M3.Scheme.SurfaceContainerHigh);
 		if (pressed >= 0)
 		{
@@ -180,5 +180,10 @@ public abstract class M3FoldWindow : M3Window
 	{
 		_shownActions = shownActions;
 		_fold.BarTop = barTop;
+	}
+
+	internal static void ResetSnackbarHost()
+	{
+		_snackbarHost = null;
 	}
 }

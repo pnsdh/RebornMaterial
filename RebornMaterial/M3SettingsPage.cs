@@ -60,6 +60,11 @@ public sealed class M3SettingsPage(string id, string label, FontAwesomeIcon icon
 
 public sealed class M3SettingsSearchResult(M3SettingsPage page, M3SettingsGroup group, bool wholeGroup)
 {
+	private string? _cardId;
+	private string? _cardTitle;
+	private string? _openId;
+	private string? _openLabel;
+
 	public M3SettingsPage Page { get; } = page;
 
 	public M3SettingsGroup Group { get; } = group;
@@ -67,6 +72,14 @@ public sealed class M3SettingsSearchResult(M3SettingsPage page, M3SettingsGroup 
 	public bool WholeGroup { get; } = wholeGroup;
 
 	public List<M3SettingsEntry> Entries { get; } = [];
+
+	internal string CardId => _cardId ??= $"search_{Page.Id}_{Group.Id}";
+
+	internal string CardTitle => _cardTitle ??= $"{Page.Label} › {Group.Title}";
+
+	internal string OpenId => _openId ??= $"##search_open_{Page.Id}_{Group.Id}";
+
+	internal string OpenLabel => _openLabel ??= $"Open {Page.Label}";
 }
 
 public static class M3SettingsSearch
@@ -88,16 +101,17 @@ public static class M3SettingsSearch
 			foreach (var group in page.Groups)
 			{
 				var whole = pageMatches || group.Title.Contains(text, StringComparison.OrdinalIgnoreCase);
-				var result = new M3SettingsSearchResult(page, group, whole);
+				M3SettingsSearchResult? result = null;
 				foreach (var entry in group.Entries)
 				{
 					if (whole || entry.Matches(text))
 					{
+						result ??= new M3SettingsSearchResult(page, group, whole);
 						result.Entries.Add(entry);
 					}
 				}
 
-				if (result.Entries.Count > 0)
+				if (result != null)
 				{
 					results.Add(result);
 				}
@@ -115,17 +129,16 @@ public static class M3SettingsSearch
 		}
 
 		M3SettingsPage? open = null;
-		var shown = 0;
-		foreach (var result in results)
+		for (var i = 0; i < results.Count; i++)
 		{
-			if (++shown > MaxResults)
+			if (i >= MaxResults)
 			{
 				M3Text.Draw($"Showing the first {MaxResults} of {results.Count} groups. Refine the search to see the rest.", M3TextStyle.Muted, true);
 				break;
 			}
 
-			using var card = M3Card.Begin($"search_{result.Page.Id}_{result.Group.Id}", $"{result.Page.Label} › {result.Group.Title}", result.Group.Icon,
-				M3.AccentFor(shown - 1), M3CardStyle.Outlined);
+			var result = results[i];
+			using var card = M3Card.Begin(result.CardId, result.CardTitle, result.Group.Icon, M3.AccentFor(i), M3CardStyle.Outlined);
 			foreach (var entry in result.Entries)
 			{
 				if (entry.IsVisible)
@@ -134,7 +147,7 @@ public static class M3SettingsSearch
 				}
 			}
 
-			if (M3SettingRow.NavigationRow($"##search_open_{result.Page.Id}_{result.Group.Id}", $"Open {result.Page.Label}", null,
+			if (M3SettingRow.NavigationRow(result.OpenId, result.OpenLabel, null,
 				FontAwesomeIcon.ExternalLinkAlt, FontAwesomeIcon.ChevronRight, M3.Scheme.Tertiary))
 			{
 				open = result.Page;

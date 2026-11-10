@@ -86,9 +86,10 @@ public abstract class M3PanelWindow(string name, string title, Vector2 initialSi
 
 		if (statusHeight > 0f)
 		{
+			var statusY = textY + titleHeight + lineGap;
 			var clipped = M3Navigation.Truncate(status, textWidth);
-			drawList.AddText(new Vector2(textX, textY + titleHeight + lineGap), M3.U32(statusColor ?? s.OnSurfaceVariant), clipped);
-			if (clipped != status && ImGui.IsMouseHoveringRect(new Vector2(textX, textY), new Vector2(textX + textWidth, textY + textHeight)))
+			drawList.AddText(new Vector2(textX, statusY), M3.U32(statusColor ?? s.OnSurfaceVariant), clipped);
+			if (clipped != status && M3Draw.MouseOver(new Vector2(textX, statusY), new Vector2(textX + textWidth, statusY + statusHeight)))
 			{
 				M3Tooltip.Show(status);
 			}

@@ -38,6 +38,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- No LINQ in this library: drop the SDK's implicit System.Linq so it can't creep back in unnoticed. -->
+		<Using Remove="System.Linq" />
 		<Using Include="System.Numerics" />
 		<Using Include="Dalamud.Interface" />
 		<Using Include="Dalamud.Bindings.ImGui" />

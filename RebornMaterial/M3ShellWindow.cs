@@ -11,7 +11,18 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	private readonly List<M3NavItem> _navItems = [];
 	private readonly string _title = title;
 	private readonly string _idPrefix = idPrefix;
+	private readonly string _navId = $"##{idPrefix}_nav";
+	private readonly string _navItemsId = $"{idPrefix}_nav";
+	private readonly string _navListId = $"##{idPrefix}_nav_list";
+	private readonly string _brandId = $"##{idPrefix}_brand";
+	private readonly string _searchId = $"##{idPrefix}_search";
+	private readonly string _searchToggleId = $"##{idPrefix}_search_toggle";
+	private readonly string _clearSearchId = $"##{idPrefix}_clear_search";
+	private readonly string _bodyId = $"##{idPrefix}_body";
+	private readonly string _searchContentId = $"##{idPrefix}_page_search";
 	private M3Page? _page;
+	private M3Page? _contentIdPage;
+	private string _contentId = string.Empty;
 	private string _loggedPageError = string.Empty;
 	private string _version = string.Empty;
 	private string _versionSource = string.Empty;
@@ -47,34 +58,29 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		}
 	}
 
-	protected IReadOnlyList<M3Page> VisiblePages
-	{
-		get
-		{
-			_visible.Clear();
-			foreach (var page in _pages)
-			{
-				if (page.IsVisible)
-				{
-					_visible.Add(page);
-				}
-			}
-
-			return _visible;
-		}
-	}
+	protected IReadOnlyList<M3Page> VisiblePages => RefreshVisiblePages();
 
 	protected int CurrentPageIndex
 	{
 		get
 		{
 			var current = CurrentPage;
-			var pages = VisiblePages;
-			for (var i = 0; i < pages.Count; ++i)
+			if (current == null)
 			{
-				if (pages[i] == current)
+				return -1;
+			}
+
+			var index = 0;
+			foreach (var page in _pages)
+			{
+				if (page == current)
 				{
-					return i;
+					return index;
+				}
+
+				if (page.IsVisible)
+				{
+					index++;
 				}
 			}
 
@@ -175,6 +181,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	protected override void DrawOpen()
 	{
 		BeforeDrawShell();
+		RefreshVisiblePages();
 		StepPageFromGamepad();
 
 		var available = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
@@ -195,9 +202,23 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		DrawSnackbar(new Vector2(origin.X + sidebarWidth + spacing, origin.Y), new Vector2(origin.X + available, origin.Y + paneHeight));
 	}
 
+	private List<M3Page> RefreshVisiblePages()
+	{
+		_visible.Clear();
+		foreach (var page in _pages)
+		{
+			if (page.IsVisible)
+			{
+				_visible.Add(page);
+			}
+		}
+
+		return _visible;
+	}
+
 	private void StepPageFromGamepad()
 	{
-		if (!GamepadPageStepping || Searching)
+		if (!GamepadPageStepping || Searching || _visible.Count < 2)
 		{
 			return;
 		}
@@ -208,14 +229,20 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 			return;
 		}
 
-		var pages = VisiblePages;
-		if (pages.Count < 2)
+		var current = CurrentPage;
+		var next = M3Navigation.Step(current == null ? -1 : _visible.IndexOf(current), _visible.Count, step);
+		ShowPage(_visible[next].Id);
+	}
+
+	private string ContentId(M3Page page)
+	{
+		if (_contentIdPage != page)
 		{
-			return;
+			_contentIdPage = page;
+			_contentId = $"##{_idPrefix}_page_{page.Id}";
 		}
 
-		var next = M3Navigation.Step(CurrentPageIndex, pages.Count, step);
-		ShowPage(pages[next].Id);
+		return _contentId;
 	}
 
 	private string Version
@@ -236,8 +263,9 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	private float DrawerWidth()
 	{
 		var widest = ImGui.CalcTextSize(_title).X * 0.6f;
-		foreach (var page in VisiblePages)
+		for (var i = 0; i < _visible.Count; i++)
 		{
+			var page = _visible[i];
 			widest = MathF.Max(widest, ImGui.CalcTextSize(page.Label).X + (page.Badge is { Length: > 0 } badge ? ImGui.CalcTextSize(badge).X + (20f * Scale) : 0f));
 		}
 
@@ -246,7 +274,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 
 	private void DrawNavigation(float width, bool expanded)
 	{
-		using var child = ImRaii.Child($"##{_idPrefix}_nav", new Vector2(width, -1f), false,
+		using var child = ImRaii.Child(_navId, new Vector2(width, -1f), false,
 			ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 		if (!child)
 		{
@@ -268,7 +296,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 				var button = M3Widgets.IconButtonSize;
 				ImGui.SetCursorPosX(ImGui.GetCursorPosX() + MathF.Max(0f, (inner - button) * 0.5f));
 				var open = RailSearchOpen;
-				if (M3Widgets.IconToggle($"##{_idPrefix}_search_toggle", FontAwesomeIcon.Search, ref open, open ? "Close search" : SearchHint))
+				if (M3Widgets.IconToggle(_searchToggleId, FontAwesomeIcon.Search, ref open, open ? "Close search" : SearchHint))
 				{
 					if (open)
 					{
@@ -285,7 +313,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		}
 
 		var footer = NavigationFooterHeight(expanded);
-		using (var list = ImRaii.Child($"##{_idPrefix}_nav_list", new Vector2(-1f, MathF.Max(1f, ImGui.GetContentRegionAvail().Y - footer)), false))
+		using (var list = ImRaii.Child(_navListId, new Vector2(-1f, MathF.Max(1f, ImGui.GetContentRegionAvail().Y - footer)), false))
 		{
 			if (list)
 			{
@@ -303,14 +331,16 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	{
 		var current = CurrentPage;
 		var tools = M3.Scheme.Tertiary;
+		var searching = Searching;
 		_navItems.Clear();
-		foreach (var page in VisiblePages)
+		for (var i = 0; i < _visible.Count; i++)
 		{
-			_navItems.Add(new M3NavItem(page.Id, page.Label, page.Icon, !Searching && page == current, page.Tooltip ?? page.Description,
+			var page = _visible[i];
+			_navItems.Add(new M3NavItem(page.Id, page.Label, page.Icon, !searching && page == current, page.Tooltip ?? page.Description,
 				page.Tool ? tools : null, page.Badge, Section: page.Section));
 		}
 
-		if (M3Navigation.Draw($"{_idPrefix}_nav", _navItems, expanded) is { } clicked)
+		if (M3Navigation.Draw(_navItemsId, _navItems, expanded) is { } clicked)
 		{
 			ShowPage(clicked);
 		}
@@ -322,15 +352,16 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		var size = 40f * Scale;
 		var origin = ImGui.GetCursorScreenPos();
 		var height = size + (2f * M3.Space1);
+		var home = _visible.Count > 0 ? _visible[0] : null;
 
-		var pressed = ImGui.InvisibleButton($"##{_idPrefix}_brand", new Vector2(width, height));
+		var pressed = ImGui.InvisibleButton(_brandId, new Vector2(width, height));
 		var hovered = ImGui.IsItemHovered();
 		var drawList = ImGui.GetWindowDrawList();
 		if (hovered)
 		{
 			drawList.AddRectFilled(origin, origin + new Vector2(width, height), M3.U32(s.OnSurface, M3.StateHover), M3.ShapeMedium);
 			ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-			M3Tooltip.Show(_pages.Count > 0 ? _pages[0].Label : _title);
+			M3Tooltip.Show(home?.Label ?? _title);
 		}
 
 		M3Draw.FocusRing(origin, origin + new Vector2(width, height), M3.ShapeMedium);
@@ -368,15 +399,15 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 			}
 		}
 
-		if (pressed && _pages.Count > 0)
+		if (pressed && home != null)
 		{
-			ShowPage(_pages[0].Id);
+			ShowPage(home.Id);
 		}
 	}
 
 	private void DrawSearchField(float width)
 	{
-		if (M3Widgets.SearchField($"##{_idPrefix}_search", SearchHint, ref _searchText, width, busy: Searching))
+		if (M3Widgets.SearchField(_searchId, SearchHint, ref _searchText, width, busy: Searching))
 		{
 			OnSearchChanged(_searchText);
 		}
@@ -384,7 +415,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 
 	private void DrawBody(bool expanded)
 	{
-		using var child = ImRaii.Child($"##{_idPrefix}_body", -Vector2.One, false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+		using var child = ImRaii.Child(_bodyId, -Vector2.One, false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 		if (!child)
 		{
 			return;
@@ -407,13 +438,14 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 
 		DrawPageHeader();
 
-		if (!Searching && page == null)
+		var searching = Searching;
+		if (!searching && page == null)
 		{
 			return;
 		}
 
-		var scrolls = Searching || page!.Scrolls;
-		using var content = ImRaii.Child($"##{_idPrefix}_page_{(Searching ? "search" : page!.Id)}", -Vector2.One, false,
+		var scrolls = searching || page!.Scrolls;
+		using var content = ImRaii.Child(searching ? _searchContentId : ContentId(page!), -Vector2.One, false,
 			scrolls ? ImGuiWindowFlags.None : ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 		if (!content)
 		{
@@ -422,7 +454,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 
 		try
 		{
-			if (Searching)
+			if (searching)
 			{
 				DrawSearchResults(_searchText);
 			}
@@ -433,7 +465,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		}
 		catch (Exception ex)
 		{
-			var pageName = Searching ? "search results" : page!.Id;
+			var pageName = searching ? "search results" : page!.Id;
 			var error = $"{pageName}: {ex.Message}";
 			if (error != _loggedPageError)
 			{
@@ -458,7 +490,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		if (Searching)
 		{
 			ImGui.SetCursorScreenPos(bar.TrailingPosition(clearSize));
-			if (M3Widgets.IconButton($"##{_idPrefix}_clear_search", FontAwesomeIcon.Times, "Clear search"))
+			if (M3Widgets.IconButton(_clearSearchId, FontAwesomeIcon.Times, "Clear search"))
 			{
 				ClearSearch();
 			}
