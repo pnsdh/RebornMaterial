@@ -14,8 +14,13 @@ namespace RebornMaterial;
 /// them on the glyph's inked shape;</item>
 /// <item>navigation drawer items, tree rows and setting rows put leading icons in a fixed-width slot
 /// (<see cref="IconSlotWidth"/>), so their labels line up;</item>
+/// <item>a card title's icon is centred on the title line (<see cref="TitleIconTop"/>);</item>
+/// <item>the colour choices' custom swatch is drawn as a colour wheel, or ringed with hues, so it reads as the
+/// picker (<see cref="PickerSwatchMark"/>);</item>
 /// <item>the library's own strings go through <see cref="T"/>, so a plugin can translate them.</item>
 /// </list>
+/// A few upstream bugs are also fixed in place, marked <c>Fork:</c>: chart axis labels running into each other at
+/// the plot's edge, and a bare <c>null</c> among <see cref="ImFontPtr"/> values becoming a null-pointer font.
 /// </summary>
 public static class M3Fork
 {
