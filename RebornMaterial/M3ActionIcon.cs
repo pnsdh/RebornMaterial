@@ -36,15 +36,16 @@ public static class M3ActionIcon
 		if (!Image(drawList, texture, min, max, rounding, enabled ? 1f : M3.DisabledContent))
 		{
 			EmptySlot(drawList, min, max, rounding);
-			return false;
 		}
-
-		if (cooldown is { } recast && enabled)
+		else
 		{
-			Cooldown(drawList, recast, min, max, rounding);
-		}
+			if (cooldown is { } recast && enabled)
+			{
+				Cooldown(drawList, recast, min, max, rounding);
+			}
 
-		drawList.AddRect(min, max, M3.U32(s.OutlineVariant, 0.8f), rounding, ImDrawFlags.None, 1f * M3.Scale);
+			drawList.AddRect(min, max, M3.U32(s.OutlineVariant, 0.8f), rounding, ImDrawFlags.None, 1f * M3.Scale);
+		}
 
 		if (hovered || held)
 		{

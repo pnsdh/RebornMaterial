@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin;
 
@@ -22,6 +23,8 @@ public static class M3
 
 	private static float _motionScale = 1f;
 
+	private static int _escapeFrame = -2;
+
 	private const int MaxCustomColors = 128;
 	private static readonly Dictionary<(Vector4 Color, bool Harmonize), M3ColorRoles> _customColors = [];
 	private static M3Scheme? _customColorScheme;
@@ -37,8 +40,14 @@ public static class M3
 
 	public static void Initialize(IDalamudPluginInterface pluginInterface, IM3Settings? settings = null)
 	{
+		if (_pluginInterface != null)
+		{
+			_pluginInterface.ActivePluginsChanged -= OnActivePluginsChanged;
+		}
+
 		_pluginInterface = pluginInterface;
 		_ = pluginInterface.Create<M3Services>();
+		pluginInterface.ActivePluginsChanged += OnActivePluginsChanged;
 		if (settings != null)
 		{
 			Settings = settings;
@@ -65,7 +74,18 @@ public static class M3
 		M3Tooltip.Handler = null;
 		_customColors.Clear();
 		_customColorScheme = null;
+		_escapeFrame = -2;
+		if (_pluginInterface != null)
+		{
+			_pluginInterface.ActivePluginsChanged -= OnActivePluginsChanged;
+		}
+
 		_pluginInterface = null;
+	}
+
+	private static void OnActivePluginsChanged(IActivePluginsChangedEventArgs args)
+	{
+		M3Plugins.Invalidate();
 	}
 
 	public static float Scale => ImGuiHelpers.GlobalScale * _elementScale * _windowScale;
@@ -79,18 +99,49 @@ public static class M3
 			ReadSizes();
 		}
 
-		M3Plugins.Invalidate();
 		M3Gamepad.BeginFrame();
 	}
 
 	private static void ReadSizes()
 	{
-		_textScale = Math.Clamp(Settings.UiTextScale, 0.5f, 3f);
-		_elementScale = ElementBaseline * Math.Clamp(Settings.UiElementScale, 0.5f, 2.5f);
-		_paddingScale = Math.Clamp(Settings.UiPaddingScale, 0f, 3f);
+		_textScale = Setting(Settings.UiTextScale, 0.5f, 3f);
+		_elementScale = (float.IsFinite(ElementBaseline) ? ElementBaseline : 1f) * Setting(Settings.UiElementScale, 0.5f, 2.5f);
+		_paddingScale = Setting(Settings.UiPaddingScale, 0f, 3f);
+		_motionScale = Setting(Settings.UiMotionScale, 0f, 3f);
+	}
 
-		var motion = Settings.UiMotionScale;
-		_motionScale = float.IsFinite(motion) ? Math.Clamp(motion, 0f, 3f) : 1f;
+	private static float Setting(float value, float min, float max)
+	{
+		return float.IsFinite(value) ? Math.Clamp(value, min, max) : 1f;
+	}
+
+	public static bool EscapeCaptured
+	{
+		get
+		{
+			var frame = ImGui.GetFrameCount();
+			if (_escapeFrame >= frame)
+			{
+				return true;
+			}
+
+			if (_escapeFrame < frame - 1)
+			{
+				return false;
+			}
+
+			if (ImGui.IsKeyDown(ImGuiKey.Escape) || (M3Services.KeyState != null && M3Services.KeyState[VirtualKey.ESCAPE]))
+			{
+				_escapeFrame = frame;
+			}
+
+			return true;
+		}
+	}
+
+	internal static void CaptureEscape()
+	{
+		_escapeFrame = ImGui.GetFrameCount();
 	}
 
 	public static float TextScale => _textScale * _windowScale;

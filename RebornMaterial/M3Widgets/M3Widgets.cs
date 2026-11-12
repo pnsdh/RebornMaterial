@@ -156,6 +156,7 @@ public static partial class M3Widgets
 		ResetButtons();
 		ResetCombos();
 		ResetRows();
+		ResetSliders();
 		ResetStructure();
 		ResetHotkeys();
 		ResetReorder();

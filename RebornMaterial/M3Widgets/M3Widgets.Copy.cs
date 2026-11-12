@@ -1,5 +1,3 @@
-using Dalamud.Interface.Utility.Raii;
-
 namespace RebornMaterial;
 
 public static partial class M3Widgets
@@ -89,8 +87,7 @@ public static partial class M3Widgets
 
 	public static bool RowCopy(string label, string text, string? supporting = null, bool iconOnly = false, bool enabled = true, string? snackbar = null)
 	{
-		var (display, id) = SplitLabel(label);
-		using var idScope = ImRaii.PushId(id);
+		var (display, id) = RowParts(label, "_copy");
 
 		bool copied;
 		M3RowInfo row;
@@ -98,14 +95,14 @@ public static partial class M3Widgets
 		{
 			row = M3SettingRow.Begin(display, supporting, new Vector2(IconButtonSize), disabled: !enabled);
 			ImGui.SetCursorScreenPos(row.ControlPosition);
-			copied = CopyIconButton("##copy", text, enabled: enabled, snackbar: snackbar);
+			copied = CopyIconButton(id, text, enabled: enabled, snackbar: snackbar);
 		}
 		else
 		{
 			var w = CopyButtonWidth();
 			row = M3SettingRow.Begin(display, supporting, new Vector2(w, ButtonHeight), disabled: !enabled);
 			ImGui.SetCursorScreenPos(row.ControlPosition);
-			copied = CopyButton("##copy", text, width: w, enabled: enabled, snackbar: snackbar);
+			copied = CopyButton(id, text, width: w, enabled: enabled, snackbar: snackbar);
 		}
 
 		M3SettingRow.End(row);

@@ -15,5 +15,8 @@ internal sealed class M3Services
 	internal static IGameInteropProvider GameInterop { get; private set; } = null!;
 
 	[PluginService]
+	internal static IKeyState KeyState { get; private set; } = null!;
+
+	[PluginService]
 	internal static IPluginLog Log { get; private set; } = null!;
 }

@@ -72,6 +72,7 @@ public static partial class M3Widgets
 		var changed = false;
 		if (listening)
 		{
+			M3.CaptureEscape();
 			if (!enabled || ImGui.IsKeyPressed(ImGuiKey.Escape) || (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !mouseOver))
 			{
 				_listeningHotkey = 0;
@@ -148,11 +149,11 @@ public static partial class M3Widgets
 
 	public static bool RowHotkey(string label, ref M3Hotkey hotkey, string? supporting = null, bool modifiers = true, bool enabled = true, bool modifierKeys = false)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_hotkey");
 		var width = MathF.Min(200f * M3.Scale, M3SettingRow.MaxControlWidth() * 0.6f);
 		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, HotkeyFieldHeight), disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = HotkeyField($"##{id}_hotkey", ref hotkey, width, modifiers, enabled, modifierKeys: modifierKeys);
+		var changed = HotkeyField(id, ref hotkey, width, modifiers, enabled, modifierKeys: modifierKeys);
 		M3SettingRow.End(row);
 		return changed;
 	}

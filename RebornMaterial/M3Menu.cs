@@ -6,7 +6,7 @@ public static class M3Menu
 {
 	private const int StyleVars = 3;
 
-	private static readonly Dictionary<uint, float> _subWidths = [];
+	private static readonly Dictionary<uint, Vector2> _subSizes = [];
 	private static int _depth;
 	private static bool _closeAll;
 
@@ -56,15 +56,19 @@ public static class M3Menu
 			ImGui.OpenPopup($"{id}_sub");
 		}
 
-		var width = _subWidths.TryGetValue(key, out var known) ? known : 200f * scale;
-		var viewport = ImGui.GetMainViewport();
+		var size = _subSizes.TryGetValue(key, out var known) ? known : new Vector2(200f * scale, 0f);
+		var viewport = ImGui.GetWindowViewport();
+		var viewMin = viewport.WorkPos;
+		var viewMax = viewMin + viewport.WorkSize;
 		var x = parentMax.X + (2f * scale);
-		if (x + width > viewport.WorkPos.X + viewport.WorkSize.X)
+		if (x + size.X > viewMax.X)
 		{
-			x = parentMin.X - width - (2f * scale);
+			x = parentMin.X - size.X - (2f * scale);
 		}
 
-		ImGui.SetNextWindowPos(new Vector2(x, rowMin.Y - (6f * scale)));
+		var y = Math.Clamp(rowMin.Y - (6f * scale), viewMin.Y, MathF.Max(viewMin.Y, viewMax.Y - size.Y));
+
+		ImGui.SetNextWindowPos(new Vector2(x, y));
 		PushStyle();
 		var scope = Finish(ImGui.BeginPopup($"{id}_sub"));
 		if (!scope.IsOpen)
@@ -72,7 +76,10 @@ public static class M3Menu
 			return scope;
 		}
 
-		_subWidths[key] = ImGui.GetWindowWidth();
+		if (!ImGui.IsWindowAppearing())
+		{
+			_subSizes[key] = ImGui.GetWindowSize();
+		}
 
 		var mouse = ImGui.GetMousePos();
 		var overParent = mouse.X >= parentMin.X && mouse.X <= parentMax.X && mouse.Y >= parentMin.Y && mouse.Y <= parentMax.Y;
@@ -148,7 +155,7 @@ public static class M3Menu
 
 	internal static void Reset()
 	{
-		_subWidths.Clear();
+		_subSizes.Clear();
 		_depth = 0;
 		_closeAll = false;
 	}

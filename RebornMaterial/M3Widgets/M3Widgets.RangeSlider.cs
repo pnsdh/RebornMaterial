@@ -32,28 +32,27 @@ public static partial class M3Widgets
 
 	public static bool RowRange(string label, ref float low, ref float high, float min, float max, string format, string? supporting = null, bool enabled = true, float step = 0f, float minSpan = 0f)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_range");
 		var trackWidth = 150f * M3.Scale;
-		var gutter = MathF.Max(SliderValueGutter(RangeReadout(format, min, min)), SliderValueGutter(RangeReadout(format, max, max)));
-		var controlSize = new Vector2(trackWidth + gutter, ButtonHeight);
+		var controlSize = new Vector2(trackWidth + SliderGutter(format, min, max, true), ButtonHeight);
 
 		var row = M3SettingRow.Begin(display, supporting, controlSize, disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = RangeCore($"##{id}_range", ref low, ref high, min, max, trackWidth, format, false, enabled, step, minSpan, null);
+		var changed = RangeCore(id, ref low, ref high, min, max, trackWidth, format, false, enabled, step, minSpan, null);
 		M3SettingRow.End(row);
 		return changed;
 	}
 
 	public static bool RowRangeInt(string label, ref int low, ref int high, int min, int max, string? supporting = null, bool enabled = true, int step = 0, int minSpan = 0)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_range");
 		var trackWidth = 150f * M3.Scale;
 		var gutter = MathF.Max(ImGui.CalcTextSize($"{min} - {min}").X, ImGui.CalcTextSize($"{max} - {max}").X) + (14f * M3.Scale);
 		var controlSize = new Vector2(trackWidth + gutter, ButtonHeight);
 
 		var row = M3SettingRow.Begin(display, supporting, controlSize, disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = RangeSliderInt($"##{id}_range", ref low, ref high, min, max, trackWidth, enabled, step, minSpan);
+		var changed = RangeSliderInt(id, ref low, ref high, min, max, trackWidth, enabled, step, minSpan);
 		M3SettingRow.End(row);
 		return changed;
 	}
@@ -224,7 +223,7 @@ public static partial class M3Widgets
 		}
 		else
 		{
-			var text = RangeReadout(format, lo, hi);
+			var text = SliderReadout(key, format, lo, hi, true);
 			var size = ImGui.CalcTextSize(text);
 			drawList.AddText(new Vector2(readoutX, centerY - (size.Y * 0.5f)), readoutColor, text);
 		}

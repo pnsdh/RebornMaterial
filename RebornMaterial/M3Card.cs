@@ -292,7 +292,7 @@ public static class M3ExpandableCard
 		}
 		else
 		{
-			ImGui.SetCursorScreenPos(new Vector2(min.X, min.Y + headerHeight - M3Card.BottomPadding));
+			ImGui.SetCursorScreenPos(new Vector2(min.X, min.Y + headerHeight));
 		}
 
 		return new Scope(key, min, width, indent, expanded);

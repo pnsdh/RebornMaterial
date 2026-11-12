@@ -237,7 +237,13 @@ public static class M3ColorMath
 
 	public static bool TryParseHex(ReadOnlySpan<char> text, out Vector4 color)
 	{
+		return TryParseHex(text, out color, out _);
+	}
+
+	public static bool TryParseHex(ReadOnlySpan<char> text, out Vector4 color, out int digits)
+	{
 		color = default;
+		digits = 0;
 		text = text.Trim();
 		if (!text.IsEmpty && text[0] == '#')
 		{
@@ -261,6 +267,7 @@ public static class M3ColorMath
 			_ => ((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF),
 		};
 
+		digits = text.Length;
 		color = new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
 		return true;
 	}

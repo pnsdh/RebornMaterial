@@ -137,14 +137,14 @@ public static partial class M3Widgets
 
 	public static bool RowColorChoices(string label, ref Vector4 color, ReadOnlySpan<M3ColorChoice> choices, string? supporting = null, bool custom = true, bool alpha = false, bool enabled = true)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_choices");
 		var n = choices.Length + (custom ? 1 : 0);
 		var width = MathF.Min(ColorChoicesWidth(choices.Length, custom), M3SettingRow.MaxControlWidth());
 		var height = ChoicesHeight(n, width);
 
 		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, height), disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = ColorChoices($"##{id}_choices", ref color, choices, custom, alpha, enabled, width);
+		var changed = ColorChoices(id, ref color, choices, custom, alpha, enabled, width);
 		M3SettingRow.End(row);
 		return changed;
 	}

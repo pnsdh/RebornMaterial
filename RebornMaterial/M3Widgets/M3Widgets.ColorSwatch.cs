@@ -60,10 +60,17 @@ public static partial class M3Widgets
 
 		var hex = M3ColorMath.ToHex(color, alpha);
 		ImGui.SetNextItemWidth(120f * scale);
-		if (ImGui.InputText($"##{id}_picker_hex", ref hex, 10) && M3ColorMath.TryParseHex(hex, out var parsed))
+		var typed = ImGui.InputText($"##{id}_picker_hex", ref hex, 10);
+		var committed = ImGui.IsItemDeactivatedAfterEdit();
+
+		if (typed && M3ColorMath.TryParseHex(hex, out var parsed, out var digits) && (digits >= 6 || committed))
 		{
-			color = alpha ? parsed : parsed with { W = color.W };
-			changed = true;
+			var next = alpha && digits is 4 or 8 ? parsed : parsed with { W = color.W };
+			if (next != color)
+			{
+				color = next;
+				changed = true;
+			}
 		}
 
 		if (defaultColor is { } fallback)

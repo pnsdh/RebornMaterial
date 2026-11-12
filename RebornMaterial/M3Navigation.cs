@@ -27,6 +27,7 @@ public static class M3Navigation
 
 	private static readonly Dictionary<uint, float> _tabScroll = [];
 	private static readonly Dictionary<uint, int> _tabShown = [];
+	private static readonly Dictionary<uint, int> _tabFocused = [];
 
 	private static float DrawerRowHeight => M3Style.Density == M3Density.Tight ? M3.FitText(36f, 8f) : M3.FitText(48f, 12f);
 
@@ -349,6 +350,7 @@ public static class M3Navigation
 
 		var indicatorX = 0f;
 		var indicatorWidth = 0f;
+		var focused = -1;
 
 		ImGui.PushClipRect(new Vector2(viewLeft, origin.Y), new Vector2(viewLeft + viewWidth, origin.Y + height), true);
 		for (var i = 0; i < tabs.Length; i++)
@@ -428,9 +430,9 @@ public static class M3Navigation
 			}
 
 			M3Draw.FocusRing(tabMin, tabMax, M3.ShapeExtraSmall);
-			if (scrolling && ImGui.IsItemFocused())
+			if (ImGui.IsItemFocused())
 			{
-				_tabScroll[key] = Math.Clamp(ScrollToShow(target, lefts[i], tabWidth, viewWidth), 0f, maxScroll);
+				focused = i;
 			}
 
 			if (hovered)
@@ -450,6 +452,22 @@ public static class M3Navigation
 		}
 
 		ImGui.PopClipRect();
+
+		if (focused >= 0)
+		{
+			if (!_tabFocused.TryGetValue(key, out var followed) || followed != focused)
+			{
+				_tabFocused[key] = focused;
+				if (scrolling)
+				{
+					_tabScroll[key] = Math.Clamp(ScrollToShow(target, lefts[focused], widths[focused], viewWidth), 0f, maxScroll);
+				}
+			}
+		}
+		else if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
+		{
+			_ = _tabFocused.Remove(key);
+		}
 
 		var divider = 1f * scale;
 		drawList.AddLine(new Vector2(origin.X, origin.Y + height - (divider * 0.5f)), new Vector2(origin.X + total, origin.Y + height - (divider * 0.5f)),
@@ -506,6 +524,7 @@ public static class M3Navigation
 	{
 		_tabScroll.Clear();
 		_tabShown.Clear();
+		_tabFocused.Clear();
 	}
 
 	public static string Truncate(string text, float maxWidth)

@@ -9,8 +9,9 @@ public static class M3Snackbar
 
 	private const int MaxQueued = 8;
 	private const float FadeDuration = 0.15f;
+	private const long HandOverMilliseconds = 1000;
 
-	private sealed record Entry(string Message, string? ActionLabel, Action? OnAction, float Duration, M3Severity Severity);
+	private sealed record Entry(string Message, string? ActionLabel, Action? OnAction, float Duration, M3Severity Severity, long QueuedAt);
 
 	private static readonly Lock _lock = new();
 	private static readonly Queue<Entry> _queue = [];
@@ -20,6 +21,8 @@ public static class M3Snackbar
 	private static float _remaining;
 	private static bool _hovered;
 	private static int _lastFrame = -1;
+	private static bool _hostClosed;
+	private static long _hostClosedAt;
 
 	public static void Show(string message, string? actionLabel = null, Action? onAction = null, float duration = ShortDuration, M3Severity severity = M3Severity.Neutral)
 	{
@@ -35,7 +38,7 @@ public static class M3Snackbar
 				_ = _queue.Dequeue();
 			}
 
-			_queue.Enqueue(new Entry(message, actionLabel, onAction, MathF.Max(1f, duration), severity));
+			_queue.Enqueue(new Entry(message, actionLabel, onAction, MathF.Max(1f, duration), severity, Environment.TickCount64));
 		}
 	}
 
@@ -46,11 +49,48 @@ public static class M3Snackbar
 			_queue.Clear();
 			_current = null;
 			_hovered = false;
+			_hostClosed = false;
+		}
+	}
+
+	internal static void HostClosed()
+	{
+		_hostClosed = true;
+		_hostClosedAt = Environment.TickCount64;
+		_hovered = false;
+	}
+
+	private static void DropQueuedBefore(long time)
+	{
+		lock (_lock)
+		{
+			if (_current != null && _current.QueuedAt <= time)
+			{
+				_current = null;
+			}
+
+			for (var remaining = _queue.Count; remaining > 0; remaining--)
+			{
+				var entry = _queue.Dequeue();
+				if (entry.QueuedAt > time)
+				{
+					_queue.Enqueue(entry);
+				}
+			}
 		}
 	}
 
 	public static void Draw(Vector2 areaMin, Vector2 areaMax)
 	{
+		if (_hostClosed)
+		{
+			_hostClosed = false;
+			if (Environment.TickCount64 - _hostClosedAt > HandOverMilliseconds)
+			{
+				DropQueuedBefore(_hostClosedAt);
+			}
+		}
+
 		var entry = _current;
 		if (entry == null)
 		{

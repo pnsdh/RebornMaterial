@@ -8,6 +8,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 {
 	private readonly List<M3Page> _pages = [];
 	private readonly List<M3Page> _visible = [];
+	private readonly List<string?> _badges = [];
 	private readonly List<M3NavItem> _navItems = [];
 	private readonly string _title = title;
 	private readonly string _idPrefix = idPrefix;
@@ -21,6 +22,10 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	private readonly string _bodyId = $"##{idPrefix}_body";
 	private readonly string _searchContentId = $"##{idPrefix}_page_search";
 	private M3Page? _page;
+	private bool _pageShown;
+	private int _visibleFrame = -1;
+	private int _drawerSignature;
+	private float _drawerWidest;
 	private M3Page? _contentIdPage;
 	private string _contentId = string.Empty;
 	private string _loggedPageError = string.Empty;
@@ -39,7 +44,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	{
 		get
 		{
-			if (_page != null && _page.IsVisible)
+			if (_page != null && IsShown(_page))
 			{
 				return _page;
 			}
@@ -47,10 +52,20 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 			_page = null;
 			foreach (var page in _pages)
 			{
-				if (page.IsVisible)
+				if (IsShown(page))
 				{
 					_page = page;
 					break;
+				}
+			}
+
+			if (_page != null)
+			{
+				var changed = _pageShown;
+				_pageShown = true;
+				if (changed)
+				{
+					OnPageChanged(_page);
 				}
 			}
 
@@ -58,7 +73,12 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		}
 	}
 
-	protected IReadOnlyList<M3Page> VisiblePages => RefreshVisiblePages();
+	protected IReadOnlyList<M3Page> VisiblePages => _visibleFrame == ImGui.GetFrameCount() ? _visible : RefreshVisiblePages();
+
+	private bool IsShown(M3Page page)
+	{
+		return _visibleFrame == ImGui.GetFrameCount() ? _visible.Contains(page) : page.IsVisible;
+	}
 
 	protected int CurrentPageIndex
 	{
@@ -78,7 +98,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 					return index;
 				}
 
-				if (page.IsVisible)
+				if (IsShown(page))
 				{
 					index++;
 				}
@@ -93,17 +113,19 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 	protected void AddPage(M3Page page)
 	{
 		_pages.Add(page);
+		_visibleFrame = -1;
 	}
 
 	public bool ShowPage(string id)
 	{
 		foreach (var page in _pages)
 		{
-			if (page.Id != id || !page.IsVisible)
+			if (page.Id != id || !IsShown(page))
 			{
 				continue;
 			}
 
+			_pageShown = true;
 			if (_page != page)
 			{
 				_page = page;
@@ -204,15 +226,19 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 
 	private List<M3Page> RefreshVisiblePages()
 	{
+		_visibleFrame = -1;
 		_visible.Clear();
+		_badges.Clear();
 		foreach (var page in _pages)
 		{
 			if (page.IsVisible)
 			{
 				_visible.Add(page);
+				_badges.Add(page.Badge);
 			}
 		}
 
+		_visibleFrame = ImGui.GetFrameCount();
 		return _visible;
 	}
 
@@ -262,14 +288,30 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 
 	private float DrawerWidth()
 	{
-		var widest = ImGui.CalcTextSize(_title).X * 0.6f;
+		var title = ImGui.CalcTextSize(_title).X;
+		var signature = new HashCode();
+		signature.Add(title);
+		signature.Add(Scale);
 		for (var i = 0; i < _visible.Count; i++)
 		{
-			var page = _visible[i];
-			widest = MathF.Max(widest, ImGui.CalcTextSize(page.Label).X + (page.Badge is { Length: > 0 } badge ? ImGui.CalcTextSize(badge).X + (20f * Scale) : 0f));
+			signature.Add(_visible[i].Label);
+			signature.Add(_badges[i]);
 		}
 
-		return MathF.Max(190f * Scale, widest + (24f * Scale) + M3Style.Spacing(16f, 12f) + M3Style.Spacing(14f, 10f) + (20f * Scale));
+		var hash = signature.ToHashCode();
+		if (hash != _drawerSignature || _drawerWidest <= 0f)
+		{
+			var widest = title * 0.6f;
+			for (var i = 0; i < _visible.Count; i++)
+			{
+				widest = MathF.Max(widest, ImGui.CalcTextSize(_visible[i].Label).X + (_badges[i] is { Length: > 0 } badge ? ImGui.CalcTextSize(badge).X + (20f * Scale) : 0f));
+			}
+
+			_drawerSignature = hash;
+			_drawerWidest = widest;
+		}
+
+		return MathF.Max(190f * Scale, _drawerWidest + (24f * Scale) + M3Style.Spacing(16f, 12f) + M3Style.Spacing(14f, 10f) + (20f * Scale));
 	}
 
 	private void DrawNavigation(float width, bool expanded)
@@ -337,7 +379,7 @@ public abstract class M3ShellWindow(string name, string idPrefix, string title, 
 		{
 			var page = _visible[i];
 			_navItems.Add(new M3NavItem(page.Id, page.Label, page.Icon, !searching && page == current, page.Tooltip ?? page.Description,
-				page.Tool ? tools : null, page.Badge, Section: page.Section));
+				page.Tool ? tools : null, _badges[i], Section: page.Section));
 		}
 
 		if (M3Navigation.Draw(_navItemsId, _navItems, expanded) is { } clicked)

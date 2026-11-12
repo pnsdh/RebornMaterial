@@ -171,12 +171,6 @@ public sealed class M3WindowFold
 		_windowPos = ImGui.GetWindowPos();
 		_windowSize = ImGui.GetWindowSize();
 		M3Gamepad.ReportFocus(BlocksGameInput);
-
-		if (_pendingMinimize)
-		{
-			_pendingMinimize = false;
-			Minimize();
-		}
 	}
 
 	public (Vector2 Pos, Vector2 Size) OpenRect()
@@ -200,6 +194,12 @@ public sealed class M3WindowFold
 
 	public int DrawBar(string id, ReadOnlySpan<M3WindowAction> actions, in M3WindowBrand brand, out bool closed, Vector4? fill = null, string closeTooltip = "Close")
 	{
+		if (_pendingMinimize)
+		{
+			_pendingMinimize = false;
+			Minimize();
+		}
+
 		var folded = Amount;
 
 		Vector2 anchor;

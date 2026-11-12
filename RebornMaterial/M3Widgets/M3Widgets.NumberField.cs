@@ -29,6 +29,7 @@ public static partial class M3Widgets
 	{
 		using var idScope = ImRaii.PushId(id);
 		var layout = BeginNumberField(width, step > 0f, unit);
+		var before = value;
 
 		bool changed;
 		using (ImRaii.Disabled(!enabled))
@@ -49,13 +50,14 @@ public static partial class M3Widgets
 			value = Math.Clamp(value, MathF.Min(min, max), MathF.Max(min, max));
 		}
 
-		return changed;
+		return changed && !value.Equals(before);
 	}
 
 	public static bool NumberField(string id, ref int value, float width, int step = 0, int min = int.MinValue, int max = int.MaxValue, string? unit = null, bool enabled = true)
 	{
 		using var idScope = ImRaii.PushId(id);
 		var layout = BeginNumberField(width, step > 0, unit);
+		var before = value;
 
 		bool changed;
 		using (ImRaii.Disabled(!enabled))
@@ -76,27 +78,27 @@ public static partial class M3Widgets
 			value = Math.Clamp(value, Math.Min(min, max), Math.Max(min, max));
 		}
 
-		return changed;
+		return changed && value != before;
 	}
 
 	public static bool RowNumber(string label, ref float value, float step = 0f, float min = float.MinValue, float max = float.MaxValue, string format = "%.2f", string? unit = null, string? supporting = null, bool enabled = true)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_number");
 		var width = NumberFieldWidth(step > 0f, unit);
 		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, NumberFieldHeight), disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = NumberField($"##{id}_number", ref value, width, step, min, max, format, unit, enabled);
+		var changed = NumberField(id, ref value, width, step, min, max, format, unit, enabled);
 		M3SettingRow.End(row);
 		return changed;
 	}
 
 	public static bool RowNumber(string label, ref int value, int step = 1, int min = int.MinValue, int max = int.MaxValue, string? unit = null, string? supporting = null, bool enabled = true)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_number");
 		var width = NumberFieldWidth(step > 0, unit);
 		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, NumberFieldHeight), disabled: !enabled);
 		ImGui.SetCursorScreenPos(row.ControlPosition);
-		var changed = NumberField($"##{id}_number", ref value, width, step, min, max, unit, enabled);
+		var changed = NumberField(id, ref value, width, step, min, max, unit, enabled);
 		M3SettingRow.End(row);
 		return changed;
 	}

@@ -38,6 +38,7 @@ public static class M3Dialog
 			return default;
 		}
 
+		M3.CaptureEscape();
 		if (dismissible && ImGui.IsKeyPressed(ImGuiKey.Escape) && !ImGui.IsAnyItemActive()
 			&& ImGui.IsWindowFocused(ImGuiFocusedFlags.ChildWindows | ImGuiFocusedFlags.NoPopupHierarchy))
 		{

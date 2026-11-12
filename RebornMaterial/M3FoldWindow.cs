@@ -98,7 +98,7 @@ public abstract class M3FoldWindow : M3Window
 		if (_snackbarHost == this)
 		{
 			_snackbarHost = null;
-			M3Snackbar.Clear();
+			M3Snackbar.HostClosed();
 		}
 
 		_fold.Reset();

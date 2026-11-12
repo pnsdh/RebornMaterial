@@ -9,6 +9,8 @@ public static class M3Draw
 	private const int RailFadeBands = 6;
 
 	private static readonly Dictionary<FontAwesomeIcon, string> _glyphs = [];
+	private static readonly Dictionary<FontAwesomeIcon, Vector2> _iconSizes = [];
+	private static (nint Font, float Size, int Scale) _iconSizesFor;
 
 	public static bool MouseOver(Vector2 min, Vector2 max, bool whileActive = false)
 	{
@@ -170,10 +172,25 @@ public static class M3Draw
 		return glyph;
 	}
 
-	public static Vector2 MeasureIcon(FontAwesomeIcon icon)
+	public static unsafe Vector2 MeasureIcon(FontAwesomeIcon icon)
 	{
-		using var font = ImRaii.PushFont(M3Fork.IconFont);
-		return ImGui.CalcTextSize(Glyph(icon));
+		var iconFont = M3Fork.IconFont; // Fork: the text-sized icon font
+		var measuredFor = ((nint)iconFont.Handle, iconFont.FontSize, (int)MathF.Round(ImGui.GetFontSize() / ImGui.GetFont().FontSize * 1000f));
+		if (measuredFor != _iconSizesFor)
+		{
+			_iconSizes.Clear();
+			_iconSizesFor = measuredFor;
+		}
+
+		if (_iconSizes.TryGetValue(icon, out var size))
+		{
+			return size;
+		}
+
+		using var font = ImRaii.PushFont(iconFont);
+		size = ImGui.CalcTextSize(Glyph(icon));
+		_iconSizes[icon] = size;
+		return size;
 	}
 
 	// Fork: draws in the box MeasureIcon gives at position, with the inked shape centred in it.

@@ -17,7 +17,7 @@ public static partial class M3Widgets
 	public static bool RowPluginSwitch(string label, ref bool value, IReadOnlyList<M3PluginRequirement> plugins, string? supporting = null, bool any = false,
 		bool enabled = true)
 	{
-		var (display, id) = SplitLabel(label);
+		var (display, id) = RowParts(label, "_switch");
 		var (pillLabel, pillIcon, pillTone) = PluginPillState(plugins, any);
 		var pill = PillSize(pillLabel, pillIcon);
 		var switchSize = SwitchSize();
@@ -27,9 +27,9 @@ public static partial class M3Widgets
 		var row = M3SettingRow.Begin(display, supporting, controlSize, disabled: !enabled);
 		var origin = row.ControlPosition;
 		ImGui.SetCursorScreenPos(origin + new Vector2(0f, (controlSize.Y - pill.Y) * 0.5f));
-		DrawPluginPill($"##{id}_plugins", plugins, any, pillLabel, pillIcon, pillTone);
+		DrawPluginPill(RowParts(label, "_plugins").Id, plugins, any, pillLabel, pillIcon, pillTone);
 		ImGui.SetCursorScreenPos(origin + new Vector2(pill.X + gap, (controlSize.Y - switchSize.Y) * 0.5f));
-		var changed = Switch($"##{id}_switch", ref value, enabled);
+		var changed = Switch(id, ref value, enabled);
 		M3SettingRow.End(row);
 		return changed;
 	}

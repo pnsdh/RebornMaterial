@@ -4,9 +4,75 @@ namespace RebornMaterial;
 
 public static partial class M3Widgets
 {
+	private const int MaxSliderTexts = 512;
+
+	private static readonly Dictionary<uint, (string Format, float Low, float High, bool Range, string Text)> _sliderReadouts = [];
+	private static readonly Dictionary<uint, (int Value, string Text)> _sliderIntReadouts = [];
+	private static readonly Dictionary<(string Format, float Min, float Max, bool Range), (string Low, string High)> _sliderGutterTexts = [];
+
+	private static void ResetSliders()
+	{
+		_sliderReadouts.Clear();
+		_sliderIntReadouts.Clear();
+		_sliderGutterTexts.Clear();
+	}
+
 	private static float SliderHandleRadius => 10f * M3.Scale;
 
 	private static float SliderGrabSize => MathF.Max(0f, (SliderHandleRadius * 2f) - 4f);
+
+	private static string SliderReadout(uint id, string format, float low, float high, bool range)
+	{
+		if (_sliderReadouts.TryGetValue(id, out var shown) && shown.Range == range && shown.Low.Equals(low) && shown.High.Equals(high) && shown.Format == format)
+		{
+			return shown.Text;
+		}
+
+		if (_sliderReadouts.Count >= MaxSliderTexts)
+		{
+			_sliderReadouts.Clear();
+		}
+
+		var text = range ? RangeReadout(format, low, high) : FormatValue(format, low);
+		_sliderReadouts[id] = (format, low, high, range, text);
+		return text;
+	}
+
+	private static string SliderReadout(uint id, int value)
+	{
+		if (_sliderIntReadouts.TryGetValue(id, out var shown) && shown.Value == value)
+		{
+			return shown.Text;
+		}
+
+		if (_sliderIntReadouts.Count >= MaxSliderTexts)
+		{
+			_sliderIntReadouts.Clear();
+		}
+
+		var text = value.ToString();
+		_sliderIntReadouts[id] = (value, text);
+		return text;
+	}
+
+	private static float SliderGutter(string format, float min, float max, bool range)
+	{
+		var key = (format, min, max, range);
+		if (!_sliderGutterTexts.TryGetValue(key, out var ends))
+		{
+			if (_sliderGutterTexts.Count >= MaxSliderTexts)
+			{
+				_sliderGutterTexts.Clear();
+			}
+
+			ends = range
+				? (RangeReadout(format, min, min), RangeReadout(format, max, max))
+				: (FormatValue(format, min), FormatValue(format, max));
+			_sliderGutterTexts[key] = ends;
+		}
+
+		return MathF.Max(SliderValueGutter(ends.Low), SliderValueGutter(ends.High));
+	}
 
 	private static ImRaii.ColorDisposable PushInvisibleSliderChrome(bool condition)
 	{
@@ -31,7 +97,8 @@ public static partial class M3Widgets
 	private static bool SliderCore(string id, ref float value, float min, float max, string? displayValue, string? format, float width, bool logarithmic, bool enabled, float step)
 	{
 		var scale = M3.Scale;
-		var editing = ImGuiP.TempInputIsActive(ImGui.GetID(id));
+		var key = ImGui.GetID(id);
+		var editing = ImGuiP.TempInputIsActive(key);
 		var flags = ImGuiSliderFlags.AlwaysClamp | ImGuiSliderFlags.NoRoundToFormat | (logarithmic ? ImGuiSliderFlags.Logarithmic : ImGuiSliderFlags.None);
 		var before = value;
 		bool changed;
@@ -58,14 +125,15 @@ public static partial class M3Widgets
 			changed = value != before;
 		}
 
-		DrawSliderVisual(value, min, max, displayValue ?? FormatValue(format ?? string.Empty, value), M3.Scheme, scale, editing, logarithmic ? 0.01f : 0f, enabled, -1f);
+		DrawSliderVisual(value, min, max, displayValue ?? SliderReadout(key, format ?? string.Empty, value, value, false), M3.Scheme, scale, editing, logarithmic ? 0.01f : 0f, enabled, -1f);
 		return changed;
 	}
 
 	private static bool SliderIntCore(string id, ref int value, int min, int max, string? displayValue, float width, bool logarithmic, bool enabled, int step)
 	{
 		var scale = M3.Scale;
-		var editing = ImGuiP.TempInputIsActive(ImGui.GetID(id));
+		var key = ImGui.GetID(id);
+		var editing = ImGuiP.TempInputIsActive(key);
 		var flags = ImGuiSliderFlags.AlwaysClamp | (logarithmic ? ImGuiSliderFlags.Logarithmic : ImGuiSliderFlags.None);
 		var before = value;
 		bool changed;
@@ -91,7 +159,7 @@ public static partial class M3Widgets
 			changed = value != before;
 		}
 
-		DrawSliderVisual(value, min, max, displayValue ?? value.ToString(), M3.Scheme, scale, editing, logarithmic ? 0.1f : 0f, enabled, MathF.Abs((float)max - min));
+		DrawSliderVisual(value, min, max, displayValue ?? SliderReadout(key, value), M3.Scheme, scale, editing, logarithmic ? 0.1f : 0f, enabled, MathF.Abs((float)max - min));
 		return changed;
 	}
 
