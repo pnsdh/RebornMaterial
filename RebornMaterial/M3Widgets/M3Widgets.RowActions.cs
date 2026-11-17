@@ -42,14 +42,30 @@ public static partial class M3Widgets
 	{
 		var display = RowParts(label, string.Empty).Label;
 		var maxWidth = M3SettingRow.MaxControlWidth() * 0.6f;
-		var size = string.IsNullOrEmpty(value) ? Vector2.Zero : ImGui.CalcTextSize(value, false, maxWidth);
+		var singleLine = Vector2.Zero;
+		if (!string.IsNullOrEmpty(value) && !value.Contains('\n'))
+		{
+			singleLine = ImGui.CalcTextSize(value);
+		}
+
+		var fitsOnOneLine = singleLine.X > 0f && singleLine.X <= maxWidth;
+		var size = string.IsNullOrEmpty(value) ? Vector2.Zero
+			: fitsOnOneLine ? singleLine
+			: ImGui.CalcTextSize(value, false, maxWidth);
 		var width = MathF.Ceiling(size.X);
 
 		var row = M3SettingRow.Begin(display, supporting, new Vector2(width, size.Y), disabled: !enabled);
 		if (width > 0f)
 		{
-			_ = M3Draw.WrappedText(value, row.ControlPosition, width + 1f,
-				M3.Alpha(color ?? M3.Scheme.OnSurfaceVariant, enabled ? 1f : M3.DisabledContent));
+			var textColor = M3.Alpha(color ?? M3.Scheme.OnSurfaceVariant, enabled ? 1f : M3.DisabledContent);
+			if (fitsOnOneLine)
+			{
+				ImGui.GetWindowDrawList().AddText(row.ControlPosition, M3.U32(textColor), value);
+			}
+			else
+			{
+				_ = M3Draw.WrappedText(value, row.ControlPosition, width + 1f, textColor);
+			}
 		}
 
 		M3SettingRow.End(row);
